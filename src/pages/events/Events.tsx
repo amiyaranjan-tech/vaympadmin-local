@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { events as eventsMock, sellers } from "@/data/mock";
 import { formatDate } from "@/utils/format";
 import { Plus, Pencil, Trash2, MapPin, Upload } from "lucide-react";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import useDropdownOptions from "@/hooks/useDropdownOptions";
 
 const schema = z.object({
   title: z.string().min(2), description: z.string().min(5),
@@ -25,6 +27,7 @@ type Form = z.infer<typeof schema>;
 export default function Events() {
   const [list, setList] = useState(eventsMock);
   const [open, setOpen] = useState(false);
+  const { options, addOption } = useDropdownOptions();
   const form = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { title: "", description: "", startDate: "", endDate: "", location: "", sellerId: sellers[0].id, status: "upcoming" } });
 
   const create = (v: Form) => {
@@ -45,7 +48,15 @@ export default function Events() {
                 <div className="space-y-2 md:col-span-2"><Label>Description</Label><Textarea rows={3} {...form.register("description")} /></div>
                 <div className="space-y-2"><Label>Start</Label><Input type="date" {...form.register("startDate")} /></div>
                 <div className="space-y-2"><Label>End</Label><Input type="date" {...form.register("endDate")} /></div>
-                <div className="space-y-2 md:col-span-2"><Label>Location</Label><Input {...form.register("location")} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Location</Label>
+                  <Combobox
+                    value={form.watch("location")}
+                    onChange={(v) => form.setValue("location", v)}
+                    onCreate={(v) => addOption({ field: "city", value: v })}
+                    options={options.cities}
+                    placeholder="Select or add a location"
+                  />
+                </div>
                 <div className="space-y-2"><Label>Shop</Label>
                   <Select value={form.watch("sellerId")} onValueChange={(v) => form.setValue("sellerId", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

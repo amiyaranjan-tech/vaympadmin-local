@@ -1,22 +1,37 @@
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FilterSelect } from "./FilterSelect";
 
-import {
-  BRANDS_LIST,
-  COLORS_LIST,
-  DATE_FILTER_LIST,
-  DISCOUNT_FILTER_LIST,
-  GENDERS_LIST,
-  MATERIALS_LIST,
-  SIZES_LIST,
-  STOCK_STATUS_LIST,
-} from "@/data/mock";
+import useDropdownOptions from "@/hooks/useDropdownOptions";
+
+// Fixed backend enums — not part of the admin-editable taxonomy
+// (DropdownOption), so kept as small local lists rather than fetched.
+const GENDERS_LIST = ["men", "women", "unisex", "kids"];
+const STOCK_STATUS_LIST = ["in-stock", "low-stock", "out-of-stock"];
+const STATUS_LIST = [
+  "draft",
+  "pending_review",
+  "approved",
+  "published",
+  "hidden",
+  "archived",
+  "rejected",
+];
+const DATE_FILTER_LIST = ["today", "7-days", "30-days", "3-months", "1-year"];
+const DISCOUNT_FILTER_LIST = ["10", "20", "30", "50"];
 
 interface ProductAdvancedFiltersProps {
   brand: string;
   size: string;
   gender: string;
   stockStatus: string;
+  status: string;
   color: string;
   material: string;
   newArrival: string;
@@ -29,6 +44,7 @@ interface ProductAdvancedFiltersProps {
   onSizeChange: (value: string) => void;
   onGenderChange: (value: string) => void;
   onStockStatusChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   onColorChange: (value: string) => void;
   onMaterialChange: (value: string) => void;
   onNewArrivalChange: (value: string) => void;
@@ -43,6 +59,7 @@ export function ProductAdvancedFilters({
   size,
   gender,
   stockStatus,
+  status,
   color,
   material,
   newArrival,
@@ -54,6 +71,7 @@ export function ProductAdvancedFilters({
   onSizeChange,
   onGenderChange,
   onStockStatusChange,
+  onStatusChange,
   onColorChange,
   onMaterialChange,
   onNewArrivalChange,
@@ -62,6 +80,10 @@ export function ProductAdvancedFilters({
   onMaxPriceChange,
   onDateAddedChange,
 }: ProductAdvancedFiltersProps) {
+  const { options } = useDropdownOptions();
+
+  const allSizes = Array.from(new Set(Object.values(options.sizesBySubcategory).flat()));
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
       <FilterSelect
@@ -69,7 +91,7 @@ export function ProductAdvancedFilters({
         placeholder="Select Brand"
         value={brand}
         onChange={onBrandChange}
-        options={BRANDS_LIST}
+        options={options.brands}
         allLabel="All Brands"
       />
 
@@ -78,7 +100,7 @@ export function ProductAdvancedFilters({
         placeholder="Select Size"
         value={size}
         onChange={onSizeChange}
-        options={SIZES_LIST}
+        options={allSizes}
         allLabel="All Sizes"
       />
 
@@ -101,11 +123,20 @@ export function ProductAdvancedFilters({
       />
 
       <FilterSelect
+        label="Status"
+        placeholder="Select Status"
+        value={status}
+        onChange={onStatusChange}
+        options={STATUS_LIST}
+        allLabel="All Statuses"
+      />
+
+      <FilterSelect
         label="Color"
         placeholder="Select Color"
         value={color}
         onChange={onColorChange}
-        options={COLORS_LIST}
+        options={options.colors}
         allLabel="All Colors"
       />
 
@@ -114,7 +145,7 @@ export function ProductAdvancedFilters({
         placeholder="Select Material"
         value={material}
         onChange={onMaterialChange}
-        options={MATERIALS_LIST}
+        options={options.materials}
         allLabel="All Materials"
       />
 
@@ -132,19 +163,20 @@ export function ProductAdvancedFilters({
           Discount
         </label>
 
-        <select
-          value={discount}
-          onChange={(e) => onDiscountChange(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">All Discounts</option>
+        <Select value={discount} onValueChange={onDiscountChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Discounts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Discounts</SelectItem>
 
-          {DISCOUNT_FILTER_LIST.map((item) => (
-            <option key={item} value={item}>
-              {item}%+
-            </option>
-          ))}
-        </select>
+            {DISCOUNT_FILTER_LIST.map((item) => (
+              <SelectItem key={item} value={item}>
+                {item}%+
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">

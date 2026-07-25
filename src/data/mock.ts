@@ -39,14 +39,34 @@ const BRANDS = [
 const COLORS = [
   "Black",
   "White",
-  "Navy",
-  "Beige",
-  "Olive",
-  "Rust",
-  "Sage",
-  "Cream",
+  "Grey",
   "Charcoal",
+  "Navy",
+  "Blue",
+  "Sky Blue",
+  "Teal",
+  "Green",
+  "Olive",
+  "Sage",
+  "Beige",
+  "Tan",
+  "Brown",
+  "Camel",
+  "Rust",
+  "Orange",
+  "Yellow",
+  "Mustard",
+  "Red",
+  "Maroon",
+  "Pink",
   "Rose",
+  "Purple",
+  "Lavender",
+  "Cream",
+  "Ivory",
+  "Gold",
+  "Silver",
+  "Multicolor",
 ] as const;
 
 const MATERIALS = [
@@ -56,11 +76,25 @@ const MATERIALS = [
   "Wool",
   "Silk",
   "Polyester",
-  "Leather",
   "Rayon",
+  "Viscose",
+  "Nylon",
+  "Leather",
+  "Suede",
+  "Velvet",
+  "Chiffon",
+  "Georgette",
+  "Satin",
+  "Corduroy",
+  "Fleece",
+  "Lycra",
+  "Khadi",
+  "Modal",
 ] as const;
 
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+const SIZES = [
+  "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL", "6XL", "7XL", "8XL",
+] as const;
 const NAMES = [
   "Aarav Shah",
   "Ishita Rao",
@@ -90,37 +124,81 @@ const pick = <T>(arr: readonly T[], i: number): T => arr[rand(i, arr.length)];
 const daysAgo = (n: number) =>
   new Date(Date.now() - n * 86400000).toISOString();
 
-export const sellers: Seller[] = Array.from({ length: 20 }, (_, i) => ({
-  id: `sel_${i + 1}`,
-  shopName: `${pick(BRANDS, i)} ${pick(["Studio", "Boutique", "Collective", "Atelier", "House"], i + 3)}`,
-  ownerName: pick(NAMES, i),
-  email: `owner${i + 1}@vaymp.shop`,
-  phone: `+91 9${String(800000000 + i * 12345).slice(0, 9)}`,
-  address: `${100 + i} Market Lane`,
-  city: pick(CITIES, i),
-  gst: `27ABCDE${1000 + i}F1Z5`,
-  businessReg: `BR-${2020 + (i % 5)}-${1000 + i}`,
-  logo: `https://api.dicebear.com/9.x/shapes/svg?seed=shop${i}`,
-  cover: `https://picsum.photos/seed/cover${i}/800/300`,
-  status: (["active", "active", "active", "pending", "suspended"] as const)[
-    i % 5
-  ],
-  shopStatus: (
-    ["open", "open", "open", "closed", "opening_soon", "closing_soon"] as const
-  )[i % 6],
-  workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-  workingHours: "10:00 AM – 9:00 PM",
-  bank: {
-    accountName: pick(NAMES, i),
-    accountNumber: `XXXXXX${1000 + i}`,
-    ifsc: `HDFC000${1000 + i}`,
-  },
-  revenue: 50000 + rand(i, 900000),
-  orders: 20 + rand(i + 3, 500),
-  rating: 3.5 + rand(i, 15) / 10,
-  createdAt: daysAgo(rand(i, 400)),
-}));
+export const sellers: Seller[] = Array.from({ length: 20 }, (_, i) => {
+  const revenue = 50000 + rand(i, 900000);
+  const orders = 20 + rand(i + 3, 500);
 
+  const returns = rand(i + 15, Math.max(5, Math.floor(orders * 0.08)));
+
+  // Refund amount based on number of returns
+const refunds = returns * (800 + rand(i + 25, 2700));
+  return {
+    id: `sel_${i + 1}`,
+
+    shopName: `${pick(BRANDS, i)} ${pick(
+      ["Studio", "Boutique", "Collective", "Atelier", "House"],
+      i + 3,
+    )}`,
+
+    ownerName: pick(NAMES, i),
+
+    email: `owner${i + 1}@vaymp.shop`,
+
+    phone: `+91 9${String(800000000 + i * 12345).slice(0, 9)}`,
+
+    address: `${100 + i} Market Lane`,
+
+    city: pick(CITIES, i),
+
+    gst: `27ABCDE${1000 + i}F1Z5`,
+
+    businessReg: `BR-${2020 + (i % 5)}-${1000 + i}`,
+
+    logo: `https://api.dicebear.com/9.x/shapes/svg?seed=shop${i}`,
+
+    cover: `https://picsum.photos/seed/cover${i}/800/300`,
+
+    status: (["active", "active", "active", "pending", "suspended"] as const)[
+      i % 5
+    ],
+
+    shopStatus: (
+      [
+        "open",
+        "open",
+        "open",
+        "closed",
+        "opening_soon",
+        "closing_soon",
+      ] as const
+    )[i % 6],
+
+    workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+
+    workingHours: "10:00 AM – 9:00 PM",
+
+    bank: {
+      accountName: pick(NAMES, i),
+      accountNumber: `XXXXXX${1000 + i}`,
+      ifsc: `HDFC000${1000 + i}`,
+    },
+
+    // Business Metrics
+    revenue,
+    orders,
+
+    // 12% platform commission
+    commission: Math.floor(revenue * 0.12),
+
+    // Number of returned orders
+    returns,
+
+    // Total refunded amount
+    refunds,
+
+    createdAt: daysAgo(rand(i, 400)),
+  };
+});
 export const SUBCATEGORIES = {
   Clothes: [
     "Upper Wear",
@@ -131,6 +209,43 @@ export const SUBCATEGORIES = {
     "Sportswear",
     "Innerwear",
     "Nightwear",
+    "T-Shirts",
+    "Shirts",
+    "Polo Shirts",
+    "Tops",
+    "Blouses",
+    "Tank Tops",
+    "Jeans",
+    "Trousers",
+    "Chinos",
+    "Joggers",
+    "Shorts",
+    "Cargo Pants",
+    "Leggings",
+    "Skirts",
+    "Jackets",
+    "Blazers",
+    "Coats",
+    "Sweaters",
+    "Cardigans",
+    "Hoodies",
+    "Sweatshirts",
+    "Suits",
+    "Co-ord Sets",
+    "Jumpsuits",
+    "Rainwear",
+    "Maternity Wear",
+    "Saree",
+    "Kurta",
+    "Kurti",
+    "Salwar Suit",
+    "Lehenga",
+    "Sherwani",
+    "Dhoti Pants",
+    "Nehru Jacket",
+    "Dupatta",
+    "Indo-Western Set",
+    "Rompers",
   ],
 
   Accessories: [
@@ -142,6 +257,34 @@ export const SUBCATEGORIES = {
     "Sunglasses",
     "Caps",
     "Scarves",
+    "Handbags",
+    "Backpacks",
+    "Clutches",
+    "Tote Bags",
+    "Sling Bags",
+    "Laptop Bags",
+    "Travel Bags",
+    "Hats",
+    "Beanies",
+    "Ties",
+    "Bow Ties",
+    "Cufflinks",
+    "Hair Accessories",
+    "Bangles",
+    "Bracelets",
+    "Necklaces",
+    "Earrings",
+    "Rings",
+    "Anklets",
+    "Brooches",
+    "Keychains",
+    "Card Holders",
+    "Phone Cases",
+    "Gloves",
+    "Mufflers",
+    "Stoles",
+    "Handkerchiefs",
+    "Umbrellas",
   ],
 
   Footwear: [
@@ -154,6 +297,21 @@ export const SUBCATEGORIES = {
     "Slippers",
     "Loafers",
     "Heels",
+    "Formal Shoes",
+    "Oxfords",
+    "Derby Shoes",
+    "Moccasins",
+    "Espadrilles",
+    "Flip Flops",
+    "Floaters",
+    "Clogs",
+    "Ankle Boots",
+    "Chelsea Boots",
+    "Sports Sandals",
+    "Flats",
+    "Ballerinas",
+    "Wedges",
+    "Pumps",
   ],
 } as const;
 
@@ -442,3 +600,48 @@ export const COLORS_LIST = COLORS;
 export const MATERIALS_LIST = MATERIALS;
 export const SIZES_LIST = SIZES;
 export const SUBCATEGORIES_LIST = SUBCATEGORIES;
+export const SEASONS_LIST = ["Summer", "Winter", "Monsoon", "All"] as const;
+export const OCCASIONS_LIST = [
+  "Casual",
+  "Formal",
+  "Party",
+  "Sport",
+  "Ethnic",
+  "Wedding",
+  "Travel",
+  "Lounge",
+  "Office",
+] as const;
+export const PATTERNS_LIST = [
+  "Solid",
+  "Striped",
+  "Checked",
+  "Printed",
+  "Floral",
+  "Polka Dot",
+  "Geometric",
+  "Animal Print",
+  "Camouflage",
+  "Tie-Dye",
+  "Embroidered",
+  "Textured",
+] as const;
+export const TAGS_LIST = [
+  "new",
+  "trending",
+  "bestseller",
+  "limited",
+  "sale",
+  "summer",
+  "winter",
+  "monsoon",
+] as const;
+export const WEEKDAYS_LIST = [
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
+] as const;

@@ -7,8 +7,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-import { orders as ordersMock, products } from "@/data/mock";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 
 import { UserDetailsSheetProps } from "./types";
 
@@ -18,8 +17,6 @@ export function UserDetailsSheet({
   onOpenChange,
 }: UserDetailsSheetProps) {
   if (!user) return null;
-
-  const userOrders = ordersMock.filter((order) => order.customerId === user.id);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -32,7 +29,7 @@ export function UserDetailsSheet({
           {/* Profile */}
           <div className="flex items-center gap-3">
             <Avatar className="h-14 w-14">
-              <AvatarImage src={user.avatar} />
+              <AvatarImage src={user.avatar?.url} />
 
               <AvatarFallback>{user.name[0]}</AvatarFallback>
             </Avatar>
@@ -48,8 +45,6 @@ export function UserDetailsSheet({
 
           {/* Summary */}
           <div className="grid grid-cols-2 gap-3">
-            <Info label="User ID" value={user.id} />
-
             <div className="rounded-xl bg-muted/40 p-3">
               <div className="text-xs text-muted-foreground">Status</div>
 
@@ -58,113 +53,66 @@ export function UserDetailsSheet({
               </Badge>
             </div>
 
-            <Info label="Total Spend" value={formatCurrency(user.totalSpend)} />
+            <div className="rounded-xl bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground">Verified</div>
 
-            <Info label="Orders" value={user.totalOrders} />
+              <Badge
+                variant={user.isVerified ? "default" : "outline"}
+                className="mt-1"
+              >
+                {user.isVerified ? "Verified" : "Unverified"}
+              </Badge>
+            </div>
+
+            <Info label="Gender" value={user.gender} className="capitalize" />
 
             <Info
-              label="Instagram"
-              value={`@${user.name.toLowerCase().replace(/\s+/g, "")}`}
+              label="Date of Birth"
+              value={user.dob ? formatDate(user.dob) : "—"}
             />
 
             <Info label="Joined On" value={formatDate(user.createdAt)} />
 
             <Info
-              label="Subscription Start"
-              value={formatDate(user.createdAt)}
-            />
-
-            <Info
-              className="col-span-2"
-              label="Subscription End"
-              value={formatDate(
-                new Date(
-                  new Date(user.createdAt).getTime() +
-                    365 * 24 * 60 * 60 * 1000,
-                ).toISOString(),
-              )}
+              label="Last Login"
+              value={user.lastLogin ? formatDate(user.lastLogin) : "Never"}
             />
           </div>
 
-          {/* Address */}
+          {/* Addresses */}
           <section>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Address
+              Addresses
             </h4>
 
-            <div className="rounded-xl bg-muted/40 p-3 text-sm">
-              {user.address}, {user.city}
-            </div>
-          </section>
-
-          {/* Orders */}
-          <section>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Recent Orders
-            </h4>
-
-            <div className="space-y-2">
-              {userOrders.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  No orders found.
-                </div>
-              ) : (
-                userOrders.slice(0, 5).map((order) => (
+            {user.addresses.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                No addresses saved.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {user.addresses.map((address, index) => (
                   <div
-                    key={order.id}
-                    className="flex items-center justify-between rounded-xl border border-border/60 p-3"
+                    key={address._id ?? index}
+                    className="rounded-xl bg-muted/40 p-3 text-sm"
                   >
-                    <div>
-                      <div className="font-medium">{order.orderNumber}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{address.label}</span>
 
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(order.createdAt)}
-                      </div>
+                      {address.isDefault && (
+                        <Badge variant="secondary">Default</Badge>
+                      )}
                     </div>
 
-                    <div className="font-semibold">
-                      {formatCurrency(order.total)}
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {address.line1}
+                      {address.line2 ? `, ${address.line2}` : ""}, {address.city},{" "}
+                      {address.state} {address.pincode}, {address.country}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          {/* Wishlist */}
-          <section>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Wishlist
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              {user.wishlist.map((productId) => {
-                const product = products.find((item) => item.id === productId);
-
-                if (!product) return null;
-
-                return (
-                  <div
-                    key={productId}
-                    className="rounded-xl border border-border/60 p-2"
-                  >
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="h-20 w-full rounded-lg object-cover"
-                    />
-
-                    <div className="mt-2 truncate text-xs font-medium">
-                      {product.name}
-                    </div>
-
-                    <div className="text-xs text-muted-foreground">
-                      {formatCurrency(product.discountPrice)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </SheetContent>
@@ -180,10 +128,10 @@ interface InfoProps {
 
 function Info({ label, value, className = "" }: InfoProps) {
   return (
-    <div className={`rounded-xl bg-muted/40 p-3 ${className}`}>
+    <div className="rounded-xl bg-muted/40 p-3">
       <div className="text-xs text-muted-foreground">{label}</div>
 
-      <div className="mt-1 font-semibold">{value}</div>
+      <div className={`mt-1 font-semibold ${className}`}>{value}</div>
     </div>
   );
 }

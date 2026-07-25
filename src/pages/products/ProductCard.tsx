@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Check, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,41 +15,51 @@ import {
 
 import { formatCurrency } from "@/utils/format";
 import { Product } from "./types";
+import { STATUS_BADGE_VARIANT, STATUS_LABELS } from "./productStatus";
 
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
   onView: (product: Product) => void;
+  onApprove?: (id: string) => void;
 }
 
-export function ProductCard({ product, onDelete, onView }: ProductCardProps) {
+export function ProductCard({ product, onDelete, onView, onApprove }: ProductCardProps) {
+  const canApprove = product.status === "pending_review";
+
   return (
     <motion.div whileHover={{ y: -3 }}>
       <Card className="overflow-hidden rounded-2xl p-0 shadow-soft">
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
           <img
-            src={product.images[0]}
+            src={product.images[0]?.url}
             alt={product.name}
             className="h-full w-full object-cover"
           />
 
           <div className="absolute right-2 top-2 flex flex-col gap-1">
-            {product.featured && (
+            {product.isFeatured && (
               <Badge className="bg-primary text-primary-foreground">
                 Featured
               </Badge>
             )}
 
-            {product.trending && (
+            {product.isTrending && (
               <Badge className="bg-secondary text-secondary-foreground">
                 Trending
               </Badge>
             )}
           </div>
 
-          <div className="absolute left-2 top-2">
-            <Badge className="bg-destructive text-destructive-foreground">
-              -{product.discount}%
+          <div className="absolute left-2 top-2 flex flex-col gap-1">
+            {product.discountPercent > 0 && (
+              <Badge className="bg-destructive text-destructive-foreground">
+                -{product.discountPercent}%
+              </Badge>
+            )}
+
+            <Badge variant={STATUS_BADGE_VARIANT[product.status]}>
+              {STATUS_LABELS[product.status]}
             </Badge>
           </div>
         </div>
@@ -77,15 +87,22 @@ export function ProductCard({ product, onDelete, onView }: ProductCardProps) {
                   View
                 </DropdownMenuItem>
 
+                {canApprove && onApprove && (
+                  <DropdownMenuItem onSelect={() => onApprove(product._id)}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuItem asChild>
-                  <Link to={`/products/${product.id}/edit`}>
+                  <Link to={`/products/${product._id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
-                  onSelect={() => onDelete(product.id)}
+                  onSelect={() => onDelete(product._id)}
                   className="text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -98,7 +115,7 @@ export function ProductCard({ product, onDelete, onView }: ProductCardProps) {
           <div className="mt-2 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">
-                {formatCurrency(product.discountPrice)}
+                {formatCurrency(product.finalPrice)}
               </div>
 
               <div className="text-xs text-muted-foreground line-through">
@@ -110,7 +127,7 @@ export function ProductCard({ product, onDelete, onView }: ProductCardProps) {
               Stock
               <br />
               <span className="font-medium text-foreground">
-                {product.stock}
+                {product.totalStock}
               </span>
             </div>
           </div>

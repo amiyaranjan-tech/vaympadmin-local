@@ -10,6 +10,7 @@ interface ProductFiltersProps {
   productId: string;
   search: string;
   category: string;
+  group: string;
   subcategory: string;
   sellerId: string;
 
@@ -17,6 +18,7 @@ interface ProductFiltersProps {
   size: string;
   gender: string;
   stockStatus: string;
+  status: string;
   color: string;
   material: string;
   newArrival: string;
@@ -28,6 +30,7 @@ interface ProductFiltersProps {
   onProductIdChange: (value: string) => void;
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onGroupChange: (value: string) => void;
   onSubcategoryChange: (value: string) => void;
   onSellerChange: (value: string) => void;
 
@@ -35,6 +38,7 @@ interface ProductFiltersProps {
   onSizeChange: (value: string) => void;
   onGenderChange: (value: string) => void;
   onStockStatusChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   onColorChange: (value: string) => void;
   onMaterialChange: (value: string) => void;
   onNewArrivalChange: (value: string) => void;
@@ -47,6 +51,7 @@ interface ProductFiltersProps {
 export function ProductFilters({
   search,
   category,
+  group,
   subcategory,
   sellerId,
 
@@ -54,6 +59,7 @@ export function ProductFilters({
   size,
   gender,
   stockStatus,
+  status,
   color,
   material,
   newArrival,
@@ -64,6 +70,7 @@ export function ProductFilters({
 
   onSearchChange,
   onCategoryChange,
+  onGroupChange,
   onSubcategoryChange,
   onSellerChange,
 
@@ -71,6 +78,7 @@ export function ProductFilters({
   onSizeChange,
   onGenderChange,
   onStockStatusChange,
+  onStatusChange,
   onColorChange,
   onMaterialChange,
   onNewArrivalChange,
@@ -97,10 +105,12 @@ export function ProductFilters({
         <ProductPrimaryFilters
           search={search}
           category={category}
+          group={group}
           subcategory={subcategory}
           sellerId={sellerId}
           onSearchChange={onSearchChange}
           onCategoryChange={onCategoryChange}
+          onGroupChange={onGroupChange}
           onSubcategoryChange={onSubcategoryChange}
           onSellerChange={onSellerChange}
         />
@@ -144,6 +154,7 @@ export function ProductFilters({
             size={size}
             gender={gender}
             stockStatus={stockStatus}
+            status={status}
             color={color}
             material={material}
             newArrival={newArrival}
@@ -155,6 +166,7 @@ export function ProductFilters({
             onSizeChange={onSizeChange}
             onGenderChange={onGenderChange}
             onStockStatusChange={onStockStatusChange}
+            onStatusChange={onStatusChange}
             onColorChange={onColorChange}
             onMaterialChange={onMaterialChange}
             onNewArrivalChange={onNewArrivalChange}

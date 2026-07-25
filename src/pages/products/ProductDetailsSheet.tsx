@@ -1,5 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -8,16 +15,28 @@ import {
 } from "@/components/ui/sheet";
 
 import { formatCurrency } from "@/utils/format";
+import useSellers from "@/hooks/useSellers";
+import type { ProductStatus } from "@/types/product";
 import { Product } from "./types";
+import { STATUS_BADGE_VARIANT, STATUS_LABELS, STATUS_TRANSITIONS } from "./productStatus";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product: Product | null;
+  onStatusChange?: (id: string, status: ProductStatus) => void;
 }
 
-export function ProductDetailsSheet({ open, onOpenChange, product }: Props) {
+export function ProductDetailsSheet({ open, onOpenChange, product, onStatusChange }: Props) {
+  const { sellers } = useSellers({ limit: 100 });
+
   if (!product) return null;
+
+  const shopName =
+    sellers.find((seller) => seller._id === product.seller)?.shopName ??
+    "Unassigned";
+
+  const nextStatuses = STATUS_TRANSITIONS[product.status] ?? [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -31,48 +50,70 @@ export function ProductDetailsSheet({ open, onOpenChange, product }: Props) {
               variant="secondary"
               className="font-mono text-xs tracking-wide"
             >
-              {product.id}
+              {product._id}
             </Badge>
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
           <img
-            src={product.images[0]}
+            src={product.images[0]?.url}
             alt={product.name}
             className="aspect-[4/5] w-full rounded-xl object-cover"
           />
 
-          <div className="flex flex-wrap gap-2">
-            {product.featured && <Badge>Featured</Badge>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={STATUS_BADGE_VARIANT[product.status]}>
+              {STATUS_LABELS[product.status]}
+            </Badge>
 
-            {product.trending && <Badge>Trending</Badge>}
+            {onStatusChange && nextStatuses.length > 0 && (
+              <Select
+                value=""
+                onValueChange={(value) => onStatusChange(product._id, value as ProductStatus)}
+              >
+                <SelectTrigger className="h-8 w-auto min-w-[10rem] text-xs">
+                  <SelectValue placeholder="Move to..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {nextStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
-            {product.newArrival && <Badge>New Arrival</Badge>}
-
-            {product.limitedStock && (
+            {product.isFeatured && <Badge>Featured</Badge>}
+            {product.isTrending && <Badge>Trending</Badge>}
+            {product.isNewArrival && <Badge>New Arrival</Badge>}
+            {product.isLimitedStock && (
               <Badge variant="destructive">Limited Stock</Badge>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <Info label="Product ID" value={product.id} />
-            <Info label="Brand" value={product.brand} />
+            <Info label="Product ID" value={product._id} />
+            <Info label="Shop" value={shopName} />
 
+            <Info label="Brand" value={product.brand} />
             <Info label="Category" value={product.category} />
+            <Info label="Group" value={product.group} />
+            <Info label="Subcategory" value={product.subcategory} />
+            <Info label="Collection" value={product.productCollection || "—"} />
             <Info label="Gender" value={product.gender} />
 
-            <Info label="Material" value={product.material} />
+            <Info label="Material" value={product.attributes.material ?? "—"} />
             <Info label="Color" value={product.color} />
 
             <Info label="Season" value={product.season} />
-            <Info label="Pattern" value={product.pattern} />
+            <Info label="Pattern" value={product.attributes.pattern ?? "—"} />
 
-            <Info label="Occasion" value={product.occasion} />
-            <Info label="Stock" value={product.stock} />
+            <Info label="Occasion" value={product.attributes.occasion ?? "—"} />
+            <Info label="Stock" value={product.totalStock} />
 
-            <Info label="Sold" value={product.sold} />
-            <Info label="Discount" value={`${product.discount}%`} />
+            <Info label="Discount" value={`${product.discountPercent}%`} />
 
             <Info
               label="Selling Price"
@@ -80,8 +121,8 @@ export function ProductDetailsSheet({ open, onOpenChange, product }: Props) {
             />
 
             <Info
-              label="Discount Price"
-              value={formatCurrency(product.discountPrice)}
+              label="Final Price"
+              value={formatCurrency(product.finalPrice)}
             />
           </div>
 
@@ -94,12 +135,25 @@ export function ProductDetailsSheet({ open, onOpenChange, product }: Props) {
           </div>
 
           <div>
-            <h4 className="mb-2 font-semibold">Available Sizes</h4>
+            <h4 className="mb-2 font-semibold">Attributes</h4>
 
             <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => (
-                <Badge key={size.size} variant="secondary">
-                  {size.size} ({size.quantity})
+              {Object.entries(product.attributes).map(([key, value]) => (
+                <Badge key={key} variant="secondary">
+                  {key}: {value}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-2 font-semibold">Variants</h4>
+
+            <div className="flex flex-wrap gap-2">
+              {product.variants.map((variant, i) => (
+                <Badge key={i} variant="secondary">
+                  {variant.size}
+                  {variant.color ? ` / ${variant.color}` : ""} ({variant.stock})
                 </Badge>
               ))}
             </div>

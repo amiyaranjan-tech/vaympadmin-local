@@ -1,18 +1,28 @@
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FilterSelect } from "./FilterSelect";
 
-import { CATEGORIES_LIST, sellers, SUBCATEGORIES_LIST } from "@/data/mock";
+import useDropdownOptions from "@/hooks/useDropdownOptions";
+import useSellers from "@/hooks/useSellers";
 
 interface ProductPrimaryFiltersProps {
   search: string;
   category: string;
+  group: string;
   subcategory: string;
   sellerId: string;
 
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onGroupChange: (value: string) => void;
   onSubcategoryChange: (value: string) => void;
   onSellerChange: (value: string) => void;
 }
@@ -20,20 +30,31 @@ interface ProductPrimaryFiltersProps {
 export function ProductPrimaryFilters({
   search,
   category,
+  group,
   subcategory,
   sellerId,
   onSearchChange,
   onCategoryChange,
+  onGroupChange,
   onSubcategoryChange,
   onSellerChange,
 }: ProductPrimaryFiltersProps) {
-  const subcategories =
+  const { options } = useDropdownOptions();
+
+  const groups =
     category === "all"
-      ? Object.values(SUBCATEGORIES_LIST).flat()
-      : SUBCATEGORIES_LIST[category as keyof typeof SUBCATEGORIES_LIST];
+      ? Object.values(options.groupsByCategory).flat()
+      : (options.groupsByCategory[category] ?? []);
+
+  const subcategories =
+    group === "all"
+      ? Object.values(options.subcategoriesByGroup).flat()
+      : (options.subcategoriesByGroup[`${category}::${group}`] ?? []);
+
+  const { sellers } = useSellers({ limit: 100 });
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6">
       {/* Search */}
       <div className="space-y-1.5 md:col-span-2">
         <label className="text-xs font-medium text-muted-foreground">
@@ -58,8 +79,18 @@ export function ProductPrimaryFilters({
         placeholder="Select Category"
         value={category}
         onChange={onCategoryChange}
-        options={CATEGORIES_LIST}
+        options={options.categories}
         allLabel="All Categories"
+      />
+
+      {/* Group */}
+      <FilterSelect
+        label="Group"
+        placeholder="Select Group"
+        value={group}
+        onChange={onGroupChange}
+        options={groups}
+        allLabel="All Groups"
       />
 
       {/* Subcategory */}
@@ -78,19 +109,20 @@ export function ProductPrimaryFilters({
           Seller
         </label>
 
-        <select
-          value={sellerId}
-          onChange={(e) => onSellerChange(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">All Sellers</option>
+        <Select value={sellerId} onValueChange={onSellerChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Sellers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sellers</SelectItem>
 
-          {sellers.map((seller) => (
-            <option key={seller.id} value={seller.id}>
-              {seller.shopName}
-            </option>
-          ))}
-        </select>
+            {sellers.map((seller) => (
+              <SelectItem key={seller._id} value={seller._id}>
+                {seller.shopName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

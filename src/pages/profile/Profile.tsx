@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import useAuth from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 

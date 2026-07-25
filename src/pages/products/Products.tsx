@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Plus, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { Download, Loader2, PackageSearch, Plus, SearchX, Upload } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
+import { EmptyState } from "@/components/common/EmptyState";
 
-import { products as productsMock } from "@/data/mock";
+import useProducts from "@/hooks/useProducts";
+import useSellers from "@/hooks/useSellers";
+import type { ProductQueryParams, ProductStockStatus } from "@/types/product";
 
 import { Product } from "./types";
 import { ProductCard } from "./ProductCard";
@@ -16,11 +18,14 @@ import { ProductDetailsSheet } from "./ProductDetailsSheet";
 
 import { useExcel } from "./hooks/useExcel";
 import { useProductState } from "./hooks/useProductState";
-import { useProductFilters } from "./hooks/useProductFilters";
+
+const STOCK_STATUS_MAP: Record<string, ProductStockStatus> = {
+  "in-stock": "in_stock",
+  "low-stock": "low_stock",
+  "out-of-stock": "out_of_stock",
+};
 
 export default function Products() {
-  const [products, setProducts] = useState(productsMock);
-
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
 
@@ -28,12 +33,14 @@ export default function Products() {
     productId,
     search,
     category,
+    group,
     subcategory,
     sellerId,
     brand,
     size,
     gender,
     stockStatus,
+    status,
     color,
     material,
     newArrival,
@@ -45,12 +52,14 @@ export default function Products() {
     setProductId,
     setSearch,
     setCategory,
+    setGroup,
     setSubcategory,
     setSellerId,
     setBrand,
     setSize,
     setGender,
     setStockStatus,
+    setStatus,
     setColor,
     setMaterial,
     setNewArrival,
@@ -60,17 +69,52 @@ export default function Products() {
     setDateAdded,
   } = useProductState();
 
-  const filteredProducts = useProductFilters({
-    products,
+  const queryParams = useMemo<ProductQueryParams>(() => {
+    const params: ProductQueryParams = {
+      limit: 60,
+    };
+
+    const search_ = (productId || search).trim();
+    if (search_) params.search = search_;
+
+    if (category !== "all") params.category = category;
+    if (group !== "all") params.group = group;
+    if (subcategory !== "all") params.subcategory = subcategory;
+    if (sellerId !== "all") params.seller = sellerId;
+    if (brand !== "all") params.brand = brand;
+    if (size !== "all") params.size = size;
+    if (gender !== "all")
+      params.gender = gender as ProductQueryParams["gender"];
+    if (color !== "all") params.color = color;
+    if (material !== "all") params.material = material;
+    if (stockStatus !== "all") params.stockStatus = STOCK_STATUS_MAP[stockStatus];
+    if (status !== "all")
+      params.status = status as ProductQueryParams["status"];
+
+    if (newArrival === "yes") params.isNewArrival = true;
+    if (newArrival === "no") params.isNewArrival = false;
+
+    if (discount !== "all") params.minDiscount = Number(discount);
+
+    if (minPrice) params.minPrice = Number(minPrice);
+    if (maxPrice) params.maxPrice = Number(maxPrice);
+
+    if (dateAdded !== "all")
+      params.dateAdded = dateAdded as ProductQueryParams["dateAdded"];
+
+    return params;
+  }, [
     productId,
     search,
     category,
+    group,
     subcategory,
     sellerId,
     brand,
     size,
     gender,
     stockStatus,
+    status,
     color,
     material,
     newArrival,
@@ -78,20 +122,68 @@ export default function Products() {
     minPrice,
     maxPrice,
     dateAdded,
-  });
+  ]);
 
-  const { fileInputRef, handleImport, handleExport } = useExcel(products);
+  const { products, total, loading, fetchProducts, deleteProduct, updateStatus } =
+    useProducts();
+
+  const { sellers } = useSellers({ limit: 100 });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      void fetchProducts(queryParams, false);
+    }, 350);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryParams]);
+
+  const { fileInputRef, importing, handleImport, handleExport } = useExcel(
+    products,
+    sellers,
+    () => void fetchProducts(queryParams, false),
+  );
 
   const handleDelete = (id: string) => {
-    setProducts((prev) => prev.filter((product) => product.id !== id));
-    toast.success("Product deleted");
+    void deleteProduct(id);
+  };
+
+  const handleStatusChange = (id: string, status: Parameters<typeof updateStatus>[1]) => {
+    void updateStatus(id, status).then((updated) => {
+      setSelectedProduct((prev) => (prev && prev._id === id ? updated : prev));
+    });
+  };
+
+  const hasActiveFilters = Object.keys(queryParams).some(
+    (key) => key !== "limit",
+  );
+
+  const clearFilters = () => {
+    setProductId("");
+    setSearch("");
+    setCategory("all");
+    setGroup("all");
+    setSubcategory("all");
+    setSellerId("all");
+    setBrand("all");
+    setSize("all");
+    setGender("all");
+    setStockStatus("all");
+    setStatus("all");
+    setColor("all");
+    setMaterial("all");
+    setNewArrival("all");
+    setDiscount("all");
+    setMinPrice("");
+    setMaxPrice("");
+    setDateAdded("all");
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Products"
-        description={`Showing ${filteredProducts.length} of ${products.length} products`}
+        description={`Showing ${products.length} of ${total} products`}
         actions={
           <>
             <input
@@ -105,10 +197,15 @@ export default function Products() {
             <Button
               variant="outline"
               className="rounded-xl"
+              disabled={importing}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="mr-2 h-4 w-4" />
-              Import
+              {importing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              {importing ? "Importing..." : "Import"}
             </Button>
 
             <Button
@@ -135,12 +232,14 @@ export default function Products() {
           productId={productId}
           search={search}
           category={category}
+          group={group}
           subcategory={subcategory}
           sellerId={sellerId}
           brand={brand}
           size={size}
           gender={gender}
           stockStatus={stockStatus}
+          status={status}
           color={color}
           material={material}
           newArrival={newArrival}
@@ -151,12 +250,14 @@ export default function Products() {
           onProductIdChange={setProductId}
           onSearchChange={setSearch}
           onCategoryChange={setCategory}
+          onGroupChange={setGroup}
           onSubcategoryChange={setSubcategory}
           onSellerChange={setSellerId}
           onBrandChange={setBrand}
           onSizeChange={setSize}
           onGenderChange={setGender}
           onStockStatusChange={setStockStatus}
+          onStatusChange={setStatus}
           onColorChange={setColor}
           onMaterialChange={setMaterial}
           onNewArrivalChange={setNewArrival}
@@ -167,24 +268,59 @@ export default function Products() {
         />
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        {filteredProducts.slice(0, 60).map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onDelete={handleDelete}
-            onView={(product) => {
-              setSelectedProduct(product);
-              setOpenDetails(true);
-            }}
+      {!loading && products.length === 0 ? (
+        hasActiveFilters ? (
+          <EmptyState
+            icon={SearchX}
+            title="No products match your filters"
+            description="Try adjusting or clearing the filters to see more results."
+            action={
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={clearFilters}
+              >
+                Clear Filters
+              </Button>
+            }
           />
-        ))}
-      </div>
+        ) : (
+          <EmptyState
+            icon={PackageSearch}
+            title="No products yet"
+            description="Add your first product to start building the catalog."
+            action={
+              <Button asChild className="rounded-xl">
+                <Link to="/products/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Product
+                </Link>
+              </Button>
+            }
+          />
+        )
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          {products.map((product) => (
+            <ProductCard
+              key={product._id}
+              product={product}
+              onDelete={handleDelete}
+              onView={(product) => {
+                setSelectedProduct(product);
+                setOpenDetails(true);
+              }}
+              onApprove={(id) => handleStatusChange(id, "approved")}
+            />
+          ))}
+        </div>
+      )}
 
       <ProductDetailsSheet
         open={openDetails}
         onOpenChange={setOpenDetails}
         product={selectedProduct}
+        onStatusChange={handleStatusChange}
       />
     </div>
   );

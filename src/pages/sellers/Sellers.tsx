@@ -1,86 +1,309 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  ExternalLink,
+  Ban,
+  Trash2,
+  Pencil,
+  Loader2,
+} from "lucide-react";
+
+import useSellers from "@/hooks/useSellers";
+
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, ExternalLink, ShieldCheck, Ban, Trash2, Pencil } from "lucide-react";
-import { sellers as sellersMock } from "@/data/mock";
+
 import { formatCurrency } from "@/utils/format";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
+
+const PLACEHOLDER_COVER =
+  "https://placehold.co/1200x400/e5e7eb/6b7280?text=Shop+Cover";
+
+const PLACEHOLDER_LOGO = "https://placehold.co/200x200/e5e7eb/6b7280?text=Logo";
 
 export default function Sellers() {
   const [q, setQ] = useState("");
-  const [list, setList] = useState(sellersMock);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const filtered = list.filter((s) =>
-    !q || `${s.shopName} ${s.ownerName} ${s.city} ${s.email}`.toLowerCase().includes(q.toLowerCase())
-  );
+  const {
+    sellers,
+    total,
+    loading,
+    error,
+    approveSeller,
+    suspendSeller,
+    deleteSeller,
+  } = useSellers();
 
-  const doAction = (id: string, action: "approve" | "suspend" | "delete") => {
-    setList((prev) => {
-      if (action === "delete") { toast.success("Seller deleted"); return prev.filter(s => s.id !== id); }
-      if (action === "approve") { toast.success("Seller approved"); return prev.map(s => s.id === id ? { ...s, status: "active" as const } : s); }
-      if (action === "suspend") { toast.success("Seller suspended"); return prev.map(s => s.id === id ? { ...s, status: "suspended" as const } : s); }
-      return prev;
-    });
+  const filtered = useMemo(() => {
+    const keyword = q.trim().toLowerCase();
+
+    if (!keyword) {
+      return sellers;
+    }
+
+    return sellers.filter((seller) =>
+      [seller.shopName, seller.ownerName, seller.city, seller.email]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [q, sellers]);
+
+  const doAction = async (
+    id: string,
+    action: "approve" | "suspend" | "delete",
+  ) => {
+    try {
+      setProcessingId(id);
+
+      switch (action) {
+        case "approve":
+          await approveSeller(id);
+          break;
+
+        case "suspend":
+          await suspendSeller(id);
+          break;
+
+        case "delete":
+          if (!window.confirm("Are you sure you want to delete this seller?")) {
+            return;
+          }
+
+          await deleteSeller(id);
+          break;
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setProcessingId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Card className="rounded-2xl p-8 text-center">
+          <h2 className="text-lg font-semibold">Unable to load sellers</h2>
+
+          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+
+          <Button
+            className="mt-6 rounded-xl"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sellers"
-        description="All shops on the Vaymp marketplace."
-        actions={<Button asChild className="rounded-xl"><Link to="/sellers/new"><Plus className="mr-2 h-4 w-4" />Add seller</Link></Button>}
+        description={`${total} seller${total !== 1 ? "s" : ""} on the marketplace`}
+        actions={
+          <Button asChild className="rounded-xl">
+            <Link to="/sellers/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Seller
+            </Link>
+          </Button>
+        }
       />
 
       <Card className="rounded-2xl p-4 shadow-soft">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search shop, owner, city…" className="pl-9" />
+
+          <Input
+            placeholder="Search shop, owner, city or email..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-9"
+          />
         </div>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((s) => (
-          <motion.div key={s.id} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+        {filtered.map((seller) => (
+          <motion.div
+            key={seller._id}
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
             <Card className="overflow-hidden rounded-2xl p-0 shadow-soft">
-              <div className="h-24 w-full bg-cover bg-center" style={{ backgroundImage: `url(${s.cover})` }} />
+              <img
+                src={seller.cover?.url || PLACEHOLDER_COVER}
+                alt={seller.shopName}
+                className="h-24 w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = PLACEHOLDER_COVER;
+                }}
+              />
+
               <div className="p-5">
                 <div className="-mt-10 flex items-start justify-between">
-                  <img src={s.logo} alt="" className="h-14 w-14 rounded-2xl border-4 border-card bg-card object-cover" />
+                  <img
+                    src={seller.logo?.url || PLACEHOLDER_LOGO}
+                    alt={seller.shopName}
+                    className="h-14 w-14 rounded-2xl border-4 border-card bg-card object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = PLACEHOLDER_LOGO;
+                    }}
+                  />
+
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={processingId === seller._id}
+                      >
+                        {processingId === seller._id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild><Link to={`/sellers/${s.id}`}><ExternalLink className="mr-2 h-4 w-4" />View</Link></DropdownMenuItem>
-                      <DropdownMenuItem asChild><Link to={`/sellers/${s.id}/edit`}><Pencil className="mr-2 h-4 w-4" />Edit</Link></DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => doAction(s.id, "approve")}><ShieldCheck className="mr-2 h-4 w-4" />Approve</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => doAction(s.id, "suspend")}><Ban className="mr-2 h-4 w-4" />Suspend</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => doAction(s.id, "delete")} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to={`/sellers/${seller._id}`}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View
+                        </Link>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild>
+                        <Link to={`/sellers/${seller._id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        disabled={processingId === seller._id}
+                        onSelect={() => void doAction(seller._id, "suspend")}
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        Suspend
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        disabled={processingId === seller._id}
+                        onSelect={() => void doAction(seller._id, "delete")}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <Link to={`/sellers/${s.id}`} className="mt-3 block text-lg font-semibold hover:underline">{s.shopName}</Link>
-                <div className="text-xs text-muted-foreground">{s.ownerName} · {s.city}</div>
-                <div className="mt-3 flex gap-2">
-                  <Badge variant="outline" className="capitalize">{s.status}</Badge>
-                  <Badge variant="outline" className="capitalize">{s.shopStatus.replace("_", " ")}</Badge>
+
+                <Link
+                  to={`/sellers/${seller._id}`}
+                  className="mt-3 block text-lg font-semibold hover:underline"
+                >
+                  {seller.shopName}
+                </Link>
+
+                <div className="text-xs text-muted-foreground">
+                  {seller.ownerName} • {seller.city}
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4 text-center">
-                  <div><div className="text-xs text-muted-foreground">Revenue</div><div className="text-sm font-semibold">{formatCurrency(s.revenue)}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Orders</div><div className="text-sm font-semibold">{s.orders}</div></div>
-                  <div><div className="text-xs text-muted-foreground">Rating</div><div className="text-sm font-semibold">{s.rating.toFixed(1)}★</div></div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge
+                    variant={
+                      seller.status === "active"
+                        ? "default"
+                        : seller.status === "pending"
+                          ? "secondary"
+                          : "destructive"
+                    }
+                    className="capitalize"
+                  >
+                    {seller.status}
+                  </Badge>
+
+                  <Badge variant="outline" className="capitalize">
+                    {(seller.shopStatus ?? "").replaceAll("_", " ")}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-4 text-center">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Revenue</div>
+
+                    <div className="text-sm font-semibold">
+                      {formatCurrency(seller.revenue)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground">Orders</div>
+
+                    <div className="text-sm font-semibold">{seller.orders}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground">
+                      Products
+                    </div>
+
+                    <div className="text-sm font-semibold">
+                      {seller.products}
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
           </motion.div>
         ))}
       </div>
+
+      {!loading && filtered.length === 0 && (
+        <Card className="rounded-2xl py-16 text-center shadow-soft">
+          <h3 className="text-lg font-semibold">No sellers found</h3>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            Try another search or create a new seller.
+          </p>
+
+          <Button asChild className="mt-6 rounded-xl">
+            <Link to="/sellers/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Seller
+            </Link>
+          </Button>
+        </Card>
+      )}
     </div>
   );
 }

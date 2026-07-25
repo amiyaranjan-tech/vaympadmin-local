@@ -1,9 +1,27 @@
-import { Navigate } from "react-router-dom";
 import type { ReactNode } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthed } = useAuth();
-  if (!isAuthed) return <Navigate to="/login" replace />;
+import useAuth from "@/hooks/useAuth";
+
+interface Props {
+  children: ReactNode;
+}
+
+export function ProtectedRoute({ children }: Props) {
+  const { isAuthed, loading } = useAuth();
+
+  // Wait until authentication state has been restored
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAuthed) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }

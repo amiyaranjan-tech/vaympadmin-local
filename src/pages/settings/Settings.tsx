@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from "@/contexts/AuthContext";
+import useAuth from "@/hooks/useAuth";
+import useSettings from "@/hooks/useSettings";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,15 +21,27 @@ const passwordSchema = z.object({
   next: z.string().min(6, "Min 6 chars"),
   confirm: z.string().min(6),
 }).refine((v) => v.next === v.confirm, { path: ["confirm"], message: "Passwords do not match" });
-const bizSchema = z.object({ companyName: z.string().min(2), supportEmail: z.string().email(), commission: z.coerce.number().min(0).max(100), address: z.string().min(3) });
+const bizSchema = z.object({ companyName: z.string().min(2), supportEmail: z.string().email(), commissionRate: z.coerce.number().min(0).max(100), address: z.string().min(3) });
 
 export default function Settings() {
   const { user } = useAuth();
   const { theme, toggle } = useTheme();
+  const { settings, updateSettings } = useSettings();
 
   const pForm = useForm<z.infer<typeof profileSchema>>({ resolver: zodResolver(profileSchema), defaultValues: { name: user?.name ?? "", email: "admin@vaymp.com" } });
   const pwForm = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { current: "", next: "", confirm: "" } });
-  const bForm = useForm<z.infer<typeof bizSchema>>({ resolver: zodResolver(bizSchema), defaultValues: { companyName: "Vaymp", supportEmail: "hello@vaymp.com", commission: 12, address: "12 Market Lane, Mumbai" } });
+  const bForm = useForm<z.infer<typeof bizSchema>>({ resolver: zodResolver(bizSchema), defaultValues: { companyName: "Vaymp", supportEmail: "", commissionRate: 10, address: "" } });
+
+  useEffect(() => {
+    if (settings) {
+      bForm.reset({
+        companyName: settings.companyName,
+        supportEmail: settings.supportEmail,
+        commissionRate: settings.commissionRate,
+        address: settings.address,
+      });
+    }
+  }, [settings, bForm]);
 
   return (
     <div className="space-y-6">
@@ -85,12 +99,18 @@ export default function Settings() {
 
         <TabsContent value="business" className="mt-4">
           <Card className="rounded-2xl p-6 shadow-soft">
-            <form onSubmit={bForm.handleSubmit(() => toast.success("Business settings saved"))} className="grid gap-4 md:grid-cols-2">
+            <form onSubmit={bForm.handleSubmit((v) => updateSettings(v))} className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2"><Label>Company name</Label><Input {...bForm.register("companyName")} /></div>
               <div className="space-y-2"><Label>Support email</Label><Input {...bForm.register("supportEmail")} /></div>
-              <div className="space-y-2"><Label>Commission %</Label><Input type="number" {...bForm.register("commission")} /></div>
+              <div className="space-y-2">
+                <Label>Default commission %</Label>
+                <Input type="number" {...bForm.register("commissionRate")} />
+                <p className="text-xs text-muted-foreground">
+                  Applied to any seller without their own commission rate override.
+                </p>
+              </div>
               <div className="space-y-2 md:col-span-2"><Label>Address</Label><Textarea rows={3} {...bForm.register("address")} /></div>
-              <div className="md:col-span-2 flex justify-end"><Button type="submit" className="rounded-xl">Save business settings</Button></div>
+              <div className="md:col-span-2 flex justify-end"><Button type="submit" className="rounded-xl" disabled={bForm.formState.isSubmitting}>Save business settings</Button></div>
             </form>
           </Card>
         </TabsContent>

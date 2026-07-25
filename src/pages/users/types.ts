@@ -1,8 +1,14 @@
-import type { User } from "@/types";
+import type { User } from "@/types/user";
 
 export interface UserSearchProps {
-  value: string;
-  onChange: (value: string) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+
+  status: string;
+  onStatusChange: (value: string) => void;
+
+  isVerified: string;
+  onVerifiedChange: (value: string) => void;
 }
 
 export interface UserTableProps {

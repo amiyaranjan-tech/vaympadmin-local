@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ShoppingBag, Store, Package, Tag, Calendar,
+  LayoutDashboard, ShoppingBag, Store, Package, Image, Tag, Calendar,
   Users, Bell, DoorOpen, BarChart3, RotateCcw, Settings,
 } from "lucide-react";
 
@@ -8,6 +8,7 @@ export const NAV = [
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/sellers", label: "Sellers", icon: Store },
   { to: "/products", label: "Products", icon: Package },
+  { to: "/marketing/banners", label: "Banners", icon: Image },
   { to: "/deals", label: "Deals & Coupons", icon: Tag },
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/users", label: "Users", icon: Users },

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-import { formatCurrency } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 
 import { UserTableProps } from "./types";
 
@@ -18,19 +18,11 @@ export function UserTable({ users, onView }: UserTableProps) {
             <tr>
               <th className="px-4 py-3 text-left font-medium">User</th>
 
-              <th className="px-4 py-3 text-left font-medium">User ID</th>
+              <th className="px-4 py-3 text-left font-medium">Phone</th>
 
               <th className="px-4 py-3 text-left font-medium">City</th>
 
-              <th className="px-4 py-3 text-center font-medium">Orders</th>
-
-              <th className="px-4 py-3 text-right font-medium">Total Spend</th>
-
-              <th className="px-4 py-3 text-center font-medium">Wishlist</th>
-
-              <th className="px-4 py-3 text-center font-medium">
-                Customer Type
-              </th>
+              <th className="px-4 py-3 text-center font-medium">Verified</th>
 
               <th className="px-4 py-3 text-left font-medium">Joined</th>
 
@@ -44,7 +36,7 @@ export function UserTable({ users, onView }: UserTableProps) {
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={7}
                   className="py-10 text-center text-sm text-muted-foreground"
                 >
                   No users found.
@@ -52,22 +44,19 @@ export function UserTable({ users, onView }: UserTableProps) {
               </tr>
             ) : (
               users.map((user) => {
-                const customerType =
-                  user.totalOrders >= 20
-                    ? "VIP"
-                    : user.totalOrders >= 5
-                      ? "Returning"
-                      : "New";
+                const defaultAddress =
+                  user.addresses.find((address) => address.isDefault) ??
+                  user.addresses[0];
 
                 return (
                   <tr
-                    key={user.id}
+                    key={user._id}
                     className="border-t border-border/60 transition-colors hover:bg-muted/30"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.avatar} />
+                          <AvatarImage src={user.avatar?.url} />
 
                           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
@@ -82,44 +71,32 @@ export function UserTable({ users, onView }: UserTableProps) {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 font-mono text-xs">{user.id}</td>
+                    <td className="px-4 py-3">{user.phone}</td>
 
-                    <td className="px-4 py-3">{user.city}</td>
-
-                    <td className="px-4 py-3 text-center">
-                      {user.totalOrders}
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-semibold">
-                      {formatCurrency(user.totalSpend)}
+                    <td className="px-4 py-3">
+                      {defaultAddress?.city ?? (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
 
                     <td className="px-4 py-3 text-center">
-                      <Badge variant="secondary">{user.wishlist.length}</Badge>
-                    </td>
-
-                    <td className="px-4 py-3 text-center">
-                      <Badge
-                        variant={
-                          customerType === "VIP"
-                            ? "default"
-                            : customerType === "Returning"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
-                        {customerType}
+                      <Badge variant={user.isVerified ? "default" : "outline"}>
+                        {user.isVerified ? "Verified" : "Unverified"}
                       </Badge>
                     </td>
 
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {formatDate(user.createdAt)}
                     </td>
 
                     <td className="px-4 py-3 text-center">
                       <Badge
                         variant={
-                          user.status === "active" ? "default" : "destructive"
+                          user.status === "active"
+                            ? "default"
+                            : user.status === "suspended"
+                              ? "secondary"
+                              : "destructive"
                         }
                         className="capitalize"
                       >

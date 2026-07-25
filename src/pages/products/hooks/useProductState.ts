@@ -5,6 +5,7 @@ export function useProductState() {
   const [productId, setProductId] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [group, setGroup] = useState("all");
   const [subcategory, setSubcategory] = useState("all");
   const [sellerId, setSellerId] = useState("all");
 
@@ -13,6 +14,7 @@ export function useProductState() {
   const [size, setSize] = useState("all");
   const [gender, setGender] = useState("all");
   const [stockStatus, setStockStatus] = useState("all");
+  const [status, setStatus] = useState("all");
   const [color, setColor] = useState("all");
   const [material, setMaterial] = useState("all");
   const [newArrival, setNewArrival] = useState("all");
@@ -30,12 +32,14 @@ export function useProductState() {
     productId,
     search,
     category,
+    group,
     subcategory,
     sellerId,
     brand,
     size,
     gender,
     stockStatus,
+    status,
     color,
     material,
     newArrival,
@@ -48,12 +52,14 @@ export function useProductState() {
     setProductId,
     setSearch,
     setCategory,
+    setGroup,
     setSubcategory,
     setSellerId,
     setBrand,
     setSize,
     setGender,
     setStockStatus,
+    setStatus,
     setColor,
     setMaterial,
     setNewArrival,

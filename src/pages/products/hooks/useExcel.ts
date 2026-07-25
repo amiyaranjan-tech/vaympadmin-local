@@ -1,15 +1,27 @@
-import { ChangeEvent, useRef } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 
-import { Product } from "../types";
+import productService from "@/services/product.service";
 
-export function useExcel(products: Product[]) {
+import type { Seller } from "@/types/seller";
+import { Product } from "../types";
+import { excelRowToPayload, productToExcelRow } from "../product.excel";
+
+export function useExcel(
+  products: Product[],
+  sellers: Seller[],
+  onImported: () => void,
+) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [importing, setImporting] = useState(false);
 
   const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
+    event.target.value = "";
 
     if (!file) {
       return;
@@ -17,53 +29,77 @@ export function useExcel(products: Product[]) {
 
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result;
 
-        const workbook = XLSX.read(data, {
-          type: "binary",
-        });
+        const workbook = XLSX.read(data, { type: "binary" });
 
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
 
-        console.log("Imported Products:", rows);
+        if (rows.length === 0) {
+          toast.error("The file has no rows to import");
+          return;
+        }
 
-        /**
-         * TODO:
-         *
-         * Convert Excel rows into Product[]
-         *
-         * Example:
-         *
-         * const importedProducts: Product[] = rows.map((row) => ({
-         *   id: crypto.randomUUID(),
-         *   name: String(row.Name),
-         *   brand: String(row.Brand),
-         *   category: String(row.Category),
-         *   ...
-         * }));
-         *
-         * Then update your products state from Products.tsx.
-         */
+        setImporting(true);
 
-        toast.success(`${rows.length} products imported successfully`);
+        let created = 0;
+        const errors: string[] = [];
+
+        for (let i = 0; i < rows.length; i += 1) {
+          const rowNumber = i + 2; // header row is row 1
+
+          const { payload, error } = excelRowToPayload(rows[i], rowNumber, sellers);
+
+          if (error) {
+            errors.push(`Row ${rowNumber}: ${error}`);
+            continue;
+          }
+
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            await productService.create(payload!);
+            created += 1;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Failed to create";
+            errors.push(`Row ${rowNumber}: ${message}`);
+          }
+        }
+
+        if (created > 0) {
+          toast.success(`${created} product(s) imported successfully`);
+          onImported();
+        }
+
+        if (errors.length > 0) {
+          console.error("Import errors:", errors);
+          toast.error(
+            `${errors.length} row(s) failed — see console for details`,
+          );
+        }
+
+        if (created === 0 && errors.length === 0) {
+          toast.error("No valid rows found in the file");
+        }
       } catch (error) {
         console.error(error);
-        toast.error("Failed to import file");
+        toast.error("Failed to read the file");
+      } finally {
+        setImporting(false);
       }
     };
 
     reader.readAsBinaryString(file);
-
-    event.target.value = "";
   };
 
   const handleExport = () => {
     try {
-      const worksheet = XLSX.utils.json_to_sheet(products);
+      const rows = products.map((product) => productToExcelRow(product, sellers));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
 
       const workbook = XLSX.utils.book_new();
 
@@ -89,6 +125,7 @@ export function useExcel(products: Product[]) {
 
   return {
     fileInputRef,
+    importing,
     handleImport,
     handleExport,
   };

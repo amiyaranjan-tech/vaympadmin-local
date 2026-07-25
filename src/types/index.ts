@@ -1,23 +1,41 @@
 export interface Seller {
   id: string;
+
   shopName: string;
   ownerName: string;
+
   email: string;
   phone: string;
+
   address: string;
   city: string;
+
   gst: string;
   businessReg: string;
+
   logo: string;
   cover: string;
+
   status: "active" | "pending" | "suspended";
+
   shopStatus: "open" | "closed" | "opening_soon" | "closing_soon";
+
   workingDays: string[];
   workingHours: string;
-  bank: { accountName: string; accountNumber: string; ifsc: string };
+
+  bank: {
+    accountName: string;
+    accountNumber: string;
+    ifsc: string;
+  };
+
+  // Business Metrics
   revenue: number;
   orders: number;
-  rating: number;
+  commission: number;
+  returns: number;
+  refunds: number;
+
   createdAt: string;
 }
 
@@ -59,7 +77,12 @@ export interface Order {
   customerName: string;
   sellerId: string;
   sellerName: string;
-  items: { productId: string; productName: string; qty: number; price: number }[];
+  items: {
+    productId: string;
+    productName: string;
+    qty: number;
+    price: number;
+  }[];
   total: number;
   commission: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
