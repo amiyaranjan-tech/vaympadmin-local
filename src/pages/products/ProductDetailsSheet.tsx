@@ -19,6 +19,7 @@ import useSellers from "@/hooks/useSellers";
 import type { ProductStatus } from "@/types/product";
 import { Product } from "./types";
 import { STATUS_BADGE_VARIANT, STATUS_LABELS, STATUS_TRANSITIONS } from "./productStatus";
+import { DEAL_TYPE_LABELS } from "./productMeta";
 
 interface Props {
   open: boolean;
@@ -91,6 +92,14 @@ export function ProductDetailsSheet({ open, onOpenChange, product, onStatusChang
             {product.isLimitedStock && (
               <Badge variant="destructive">Limited Stock</Badge>
             )}
+            {product.tryAndBuy && (
+              <Badge className="bg-emerald-600 text-white">Try & Buy</Badge>
+            )}
+            {product.dealType && product.dealType !== "none" && (
+              <Badge className="bg-amber-500 text-white">
+                {DEAL_TYPE_LABELS[product.dealType]}
+              </Badge>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -99,7 +108,7 @@ export function ProductDetailsSheet({ open, onOpenChange, product, onStatusChang
 
             <Info label="Brand" value={product.brand} />
             <Info label="Category" value={product.category} />
-            <Info label="Group" value={product.group} />
+            <Info label="Group" value={product.group.join(", ")} />
             <Info label="Subcategory" value={product.subcategory} />
             <Info label="Collection" value={product.productCollection || "—"} />
             <Info label="Gender" value={product.gender} />
@@ -133,6 +142,18 @@ export function ProductDetailsSheet({ open, onOpenChange, product, onStatusChang
               {product.description}
             </p>
           </div>
+
+          {product.dealType && product.dealType !== "none" && product.dealImage?.url && (
+            <div>
+              <h4 className="mb-2 font-semibold">Deal Badge Image</h4>
+
+              <img
+                src={product.dealImage.url}
+                alt={product.dealImage.alt || "Deal badge"}
+                className="h-20 w-20 rounded-xl border object-cover"
+              />
+            </div>
+          )}
 
           <div>
             <h4 className="mb-2 font-semibold">Attributes</h4>

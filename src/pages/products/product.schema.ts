@@ -7,7 +7,7 @@ export const productSchema = z.object({
 
   // Taxonomy — Category -> Group -> Subcategory
   category: z.string().min(1, "Required"),
-  group: z.string().min(1, "Required"),
+  group: z.array(z.string()).min(1, "Select at least one group"),
   subcategory: z.string().min(1, "Required"),
 
   gender: z.enum(["men", "women", "unisex", "kids"]),
@@ -46,6 +46,22 @@ export const productSchema = z.object({
   isNewArrival: z.boolean(),
   isLimitedStock: z.boolean(),
   isBogo: z.boolean(),
+
+  // Product Highlights
+  tryAndBuy: z.boolean(),
+  dealType: z.enum([
+    "none",
+    "bogo",
+    "buy2get1",
+    "buy2get_discount",
+    "tiered_amount",
+    "tiered_percentage",
+    "flash_sale",
+    "limited_offer",
+    "clearance",
+    "combo_offer",
+    "free_shipping",
+  ]),
 
   video: z.string().optional().or(z.literal("")),
 });

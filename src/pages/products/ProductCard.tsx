@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from "@/utils/format";
 import { Product } from "./types";
 import { STATUS_BADGE_VARIANT, STATUS_LABELS } from "./productStatus";
+import { DEAL_TYPE_LABELS } from "./productMeta";
 
 interface ProductCardProps {
   product: Product;
@@ -47,6 +48,16 @@ export function ProductCard({ product, onDelete, onView, onApprove }: ProductCar
             {product.isTrending && (
               <Badge className="bg-secondary text-secondary-foreground">
                 Trending
+              </Badge>
+            )}
+
+            {product.tryAndBuy && (
+              <Badge className="bg-emerald-600 text-white">Try & Buy</Badge>
+            )}
+
+            {product.dealType && product.dealType !== "none" && (
+              <Badge className="bg-amber-500 text-white">
+                {DEAL_TYPE_LABELS[product.dealType]}
               </Badge>
             )}
           </div>

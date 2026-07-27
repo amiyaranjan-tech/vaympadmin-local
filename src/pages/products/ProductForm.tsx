@@ -19,7 +19,7 @@ import {
 import { Combobox } from "@/components/ui/combobox";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { toast } from "sonner";
-import { Check, Loader2, Upload } from "lucide-react";
+import { AlertCircle, Check, Loader2, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/utils/format";
 import { cn } from "@/lib/utils";
@@ -28,11 +28,13 @@ import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
+import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
 import type { DropdownOptions } from "@/types/option";
 import type { ProductImage } from "@/types/product";
 
 import { productSchema, ProductFormValues as Form } from "./product.schema";
 import { createProductPayload, updateProductPayload } from "./product.mapper";
+import { DEAL_TYPES, DEAL_TYPE_LABELS } from "./productMeta";
 
 const STEPS = [
   "Basics",
@@ -111,6 +113,30 @@ function attributeOptions(key: string, options: DropdownOptions): string[] {
   }
 }
 
+/**
+ * ==========================================
+ * Deal Image Upload State
+ * ==========================================
+ * Mirrors BannerForm.tsx's ImageUploadState — `image` is the only value
+ * that ever gets submitted, set atomically from either an edit-mode load
+ * or a successful Cloudinary upload.
+ */
+interface ImageUploadState {
+  image: ProductImage;
+  previewUrl: string;
+  status: "idle" | "uploading" | "error";
+  error: string | null;
+  progress: number;
+}
+
+const EMPTY_DEAL_IMAGE_STATE: ImageUploadState = {
+  image: { url: "", publicId: "" },
+  previewUrl: "",
+  status: "idle",
+  error: null,
+  progress: 0,
+};
+
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -123,6 +149,9 @@ export default function ProductForm() {
   const [loadingProduct, setLoadingProduct] = useState(isEdit);
   const [step, setStep] = useState(0);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [dealImageState, setDealImageState] = useState<ImageUploadState>(
+    EMPTY_DEAL_IMAGE_STATE,
+  );
 
   const form = useForm<Form>({
     resolver: zodResolver(productSchema),
@@ -132,7 +161,7 @@ export default function ProductForm() {
       description: "",
       brand: "",
       category: "Clothes",
-      group: "",
+      group: [],
       subcategory: "",
       gender: "unisex",
       tags: "",
@@ -154,6 +183,8 @@ export default function ProductForm() {
       isNewArrival: false,
       isLimitedStock: false,
       isBogo: false,
+      tryAndBuy: false,
+      dealType: "none",
       video: "",
     },
   });
@@ -198,10 +229,19 @@ export default function ProductForm() {
           isNewArrival: product.isNewArrival,
           isLimitedStock: product.isLimitedStock,
           isBogo: product.isBogo,
+          tryAndBuy: product.tryAndBuy,
+          dealType: product.dealType,
           video: product.video,
         });
 
         setImages(product.images);
+        setDealImageState({
+          image: product.dealImage,
+          previewUrl: product.dealImage.url,
+          status: "idle",
+          error: null,
+          progress: 0,
+        });
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load product",
@@ -227,10 +267,16 @@ export default function ProductForm() {
   const group = form.watch("group");
   const subcategory = form.watch("subcategory");
   const attributes = form.watch("attributes") ?? {};
+  const dealType = form.watch("dealType");
 
   const groupOptions = options.groupsByCategory[category] ?? [];
-  const subcategoryOptions =
-    options.subcategoriesByGroup[`${category}::${group}`] ?? [];
+  // Union of subcategories valid for any of the product's selected
+  // groups — subcategory only needs to fit at least one group, not all.
+  const subcategoryOptions = Array.from(
+    new Set(
+      group.flatMap((g) => options.subcategoriesByGroup[`${category}::${g}`] ?? []),
+    ),
+  );
   const sizeOptions =
     options.sizesBySubcategory[subcategory ?? ""] ??
     sortSizes(Array.from(new Set(Object.values(options.sizesBySubcategory).flat())));
@@ -251,15 +297,47 @@ export default function ProductForm() {
       toast.error("Please fix the errors");
       return;
     }
+
+    if (step === 4 && dealType !== "none") {
+      if (dealImageState.status === "uploading") {
+        toast.error("Please wait for the deal image to finish uploading");
+        return;
+      }
+
+      if (!dealImageState.image.url) {
+        toast.error("A deal image is required for the selected deal type");
+        return;
+      }
+    }
+
     if (step < STEPS.length - 1) setStep(step + 1);
   };
 
   const onSubmit = async (values: Form) => {
+    if (values.dealType !== "none") {
+      if (dealImageState.status === "uploading") {
+        toast.error("Please wait for the deal image to finish uploading");
+        setStep(4);
+        return;
+      }
+
+      if (!dealImageState.image.url) {
+        toast.error("A deal image is required for the selected deal type");
+        setStep(4);
+        return;
+      }
+    }
+
     try {
       if (isEdit && id) {
-        await updateProduct(id, updateProductPayload(values, images));
+        await updateProduct(
+          id,
+          updateProductPayload(values, images, dealImageState.image),
+        );
       } else {
-        await createProduct(createProductPayload(values, images));
+        await createProduct(
+          createProductPayload(values, images, dealImageState.image),
+        );
       }
 
       navigate("/products");
@@ -296,6 +374,50 @@ export default function ProductForm() {
     }));
     setImages((prev) => [...prev, ...previews]);
     toast.success(`${files.length} image(s) added`);
+  };
+
+  const handleDealImageFile = async (files: FileList | null) => {
+    const file = files?.[0];
+
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+
+    setDealImageState((prev) => ({
+      ...prev,
+      previewUrl,
+      status: "uploading",
+      error: null,
+      progress: 0,
+    }));
+
+    try {
+      const uploaded = await uploadImageToCloudinary(file, {
+        folder: "vaymp/products/deal-image",
+        onProgress: (progress) =>
+          setDealImageState((prev) => ({ ...prev, progress })),
+      });
+
+      setDealImageState({
+        image: uploaded,
+        previewUrl: uploaded.url,
+        status: "idle",
+        error: null,
+        progress: 100,
+      });
+
+      toast.success("Deal image uploaded");
+    } catch (error) {
+      setDealImageState((prev) => ({
+        ...prev,
+        status: "error",
+        error: error instanceof Error ? error.message : "Upload failed",
+      }));
+
+      toast.error(
+        error instanceof Error ? error.message : "Deal image upload failed",
+      );
+    }
   };
 
   if (loadingProduct) {
@@ -386,7 +508,7 @@ export default function ProductForm() {
                       value={form.watch("category")}
                       onChange={(v) => {
                         form.setValue("category", v);
-                        form.setValue("group", "");
+                        form.setValue("group", []);
                         form.setValue("subcategory", "");
                       }}
                       onCreate={(v) => addOption({ field: "category", value: v })}
@@ -396,15 +518,15 @@ export default function ProductForm() {
                   </div>
                   <div className="space-y-2">
                     <Label>Group</Label>
-                    <Combobox
-                      value={form.watch("group") ?? ""}
-                      onChange={(v) => {
-                        form.setValue("group", v);
+                    <MultiCombobox
+                      values={group}
+                      onChange={(vals) => {
+                        form.setValue("group", vals);
                         form.setValue("subcategory", "");
                       }}
                       onCreate={(v) => addOption({ field: "group", value: v, scope: category })}
                       options={groupOptions}
-                      placeholder="Select or add a group"
+                      placeholder="Select or add group(s)"
                     />
                     {form.formState.errors.group && (
                       <p className="text-xs text-destructive">
@@ -533,7 +655,7 @@ export default function ProductForm() {
               )}
               {step === 2 && (
                 <div className="space-y-3">
-                  <Label>Variants (size, color, SKU, stock)</Label>
+                  <Label>Variants (size, stock)</Label>
                   {variants.map((variant, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <Combobox
@@ -553,28 +675,6 @@ export default function ProductForm() {
                         options={sizeOptions}
                         placeholder="Size"
                         className="w-28"
-                      />
-                      <Combobox
-                        value={variant.color ?? ""}
-                        onChange={(v) => {
-                          const arr = [...variants];
-                          arr[i] = { ...arr[i], color: v };
-                          form.setValue("variants", arr);
-                        }}
-                        onCreate={(v) => addOption({ field: "color", value: v })}
-                        options={options.colors}
-                        placeholder="Color (optional)"
-                        className="w-36"
-                      />
-                      <Input
-                        value={variant.sku ?? ""}
-                        onChange={(e) => {
-                          const arr = [...variants];
-                          arr[i] = { ...arr[i], sku: e.target.value };
-                          form.setValue("variants", arr);
-                        }}
-                        placeholder="SKU (optional)"
-                        className="w-32"
                       />
                       <Input
                         type="number"
@@ -663,27 +763,128 @@ export default function ProductForm() {
                 </div>
               )}
               {step === 4 && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(
-                    [
-                      ["isFeatured", "Featured"],
-                      ["isTrending", "Trending"],
-                      ["isNewArrival", "New Arrival"],
-                      ["isLimitedStock", "Limited Stock"],
-                      ["isBogo", "Buy One Get One"],
-                    ] as const
-                  ).map(([k, l]) => (
-                    <label
-                      key={k}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 hover:bg-muted/40"
-                    >
+                <div className="space-y-6">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {(
+                      [
+                        ["isFeatured", "Featured"],
+                        ["isTrending", "Trending"],
+                        ["isNewArrival", "New Arrival"],
+                        ["isLimitedStock", "Limited Stock"],
+                        ["isBogo", "Buy One Get One"],
+                      ] as const
+                    ).map(([k, l]) => (
+                      <label
+                        key={k}
+                        className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 hover:bg-muted/40"
+                      >
+                        <Checkbox
+                          checked={form.watch(k)}
+                          onCheckedChange={(v) => form.setValue(k, !!v)}
+                        />
+                        <span className="text-sm font-medium">{l}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="space-y-4 border-t border-border pt-6">
+                    <div>
+                      <h3 className="text-sm font-semibold">Product Highlights</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Small badges shown on the product image across the
+                        app — home, search, wishlist, bag, and product
+                        details.
+                      </p>
+                    </div>
+
+                    <label className="flex max-w-sm cursor-pointer items-center gap-3 rounded-xl border border-border p-4 hover:bg-muted/40">
                       <Checkbox
-                        checked={form.watch(k)}
-                        onCheckedChange={(v) => form.setValue(k, !!v)}
+                        checked={form.watch("tryAndBuy")}
+                        onCheckedChange={(v) => form.setValue("tryAndBuy", !!v)}
                       />
-                      <span className="text-sm font-medium">{l}</span>
+                      <span className="text-sm font-medium">Try & Buy</span>
                     </label>
-                  ))}
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Deal Type</Label>
+                        <Select
+                          value={dealType}
+                          onValueChange={(v) =>
+                            form.setValue("dealType", v as Form["dealType"])
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DEAL_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {DEAL_TYPE_LABELS[type]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {dealType !== "none" && (
+                      <div className="space-y-2">
+                        <Label>Deal Badge Image (required)</Label>
+
+                        <label
+                          className={cn(
+                            "flex max-w-sm flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40",
+                            dealImageState.status === "uploading"
+                              ? "cursor-not-allowed opacity-60"
+                              : "cursor-pointer",
+                          )}
+                        >
+                          {dealImageState.status === "uploading" ? (
+                            <Loader2 className="mb-2 h-5 w-5 animate-spin text-primary" />
+                          ) : (
+                            <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+                          )}
+                          <div className="text-xs font-medium">
+                            {dealImageState.status === "uploading"
+                              ? `Uploading… ${dealImageState.progress}%`
+                              : dealImageState.image.url
+                                ? "Replace image"
+                                : "Upload deal image"}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={dealImageState.status === "uploading"}
+                            onChange={(e) => void handleDealImageFile(e.target.files)}
+                          />
+                        </label>
+
+                        {dealImageState.error && (
+                          <p className="flex items-center gap-1.5 text-xs text-destructive">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            {dealImageState.error}
+                          </p>
+                        )}
+
+                        {(dealImageState.previewUrl || dealImageState.image.url) && (
+                          <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-muted">
+                            <img
+                              src={dealImageState.previewUrl || dealImageState.image.url}
+                              className="h-full w-full object-cover"
+                              alt="Deal badge preview"
+                            />
+                            {dealImageState.status === "uploading" && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               {step === 5 && (

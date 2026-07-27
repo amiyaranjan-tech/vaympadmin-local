@@ -45,6 +45,22 @@ export type ProductDateAddedFilter =
   | "3-months"
   | "1-year";
 
+// Mirrors the backend's constants/dealType.js — a merchandising label
+// shown on the product's deal badge, independent of the isFeatured/
+// isTrending/... flags below. "none" means no deal badge at all.
+export type DealType =
+  | "none"
+  | "bogo"
+  | "buy2get1"
+  | "buy2get_discount"
+  | "tiered_amount"
+  | "tiered_percentage"
+  | "flash_sale"
+  | "limited_offer"
+  | "clearance"
+  | "combo_offer"
+  | "free_shipping";
+
 /**
  * ==========================================
  * Image / Variant
@@ -54,6 +70,7 @@ export type ProductDateAddedFilter =
 export interface ProductImage {
   url: string;
   publicId: string;
+  alt?: string;
 }
 
 export interface ProductVariant {
@@ -78,8 +95,10 @@ export interface Product {
   brand: string;
 
   // Taxonomy — Category -> Group -> Subcategory
+  // A product may belong to multiple groups within its category;
+  // subcategory stays a single value valid for at least one of them.
   category: string;
-  group: string;
+  group: string[];
   subcategory: string;
 
   gender: ProductGender;
@@ -113,6 +132,13 @@ export interface Product {
   isNewArrival: boolean;
   isLimitedStock: boolean;
   isBogo: boolean;
+
+  // Product Highlights — Try & Buy eligibility and a merchandising deal
+  // badge, independent of the flags above. dealImage is required (backend-
+  // enforced) whenever dealType isn't "none".
+  tryAndBuy: boolean;
+  dealType: DealType;
+  dealImage: ProductImage;
 
   images: ProductImage[];
   video: string;
@@ -154,7 +180,7 @@ export interface CreateProductRequest {
 
   brand: string;
   category: string;
-  group: string;
+  group: string[];
   subcategory: string;
 
   gender?: ProductGender;
@@ -179,6 +205,10 @@ export interface CreateProductRequest {
   isNewArrival?: boolean;
   isLimitedStock?: boolean;
   isBogo?: boolean;
+
+  tryAndBuy?: boolean;
+  dealType?: DealType;
+  dealImage?: ProductImage;
 
   images?: ProductImage[];
   video?: string;
@@ -233,6 +263,9 @@ export interface ProductQueryParams {
   isNewArrival?: boolean;
   isLimitedStock?: boolean;
   isBogo?: boolean;
+
+  tryAndBuy?: boolean;
+  dealType?: DealType;
 
   discount?: ProductDiscountFilter;
   minDiscount?: number;
