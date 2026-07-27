@@ -12,11 +12,7 @@ import type { ProductFormValues } from "./product.schema";
  * ==========================================
  */
 
-function buildCommonPayload(
-  values: ProductFormValues,
-  images: ProductImage[],
-  dealImage: ProductImage,
-) {
+function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
   return {
     name: values.name.trim(),
 
@@ -78,8 +74,6 @@ function buildCommonPayload(
 
     images,
 
-    dealImage,
-
     video: values.video?.trim() ?? "",
   };
 }
@@ -97,10 +91,9 @@ function buildCommonPayload(
 export function createProductPayload(
   values: ProductFormValues,
   images: ProductImage[],
-  dealImage: ProductImage,
 ): CreateProductRequest {
   return {
-    ...buildCommonPayload(values, images, dealImage),
+    ...buildCommonPayload(values, images),
 
     status: "draft",
   };
@@ -115,7 +108,6 @@ export function createProductPayload(
 export function updateProductPayload(
   values: ProductFormValues,
   images: ProductImage[],
-  dealImage: ProductImage,
 ): UpdateProductRequest {
-  return buildCommonPayload(values, images, dealImage);
+  return buildCommonPayload(values, images);
 }

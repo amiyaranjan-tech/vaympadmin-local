@@ -143,18 +143,6 @@ export function ProductDetailsSheet({ open, onOpenChange, product, onStatusChang
             </p>
           </div>
 
-          {product.dealType && product.dealType !== "none" && product.dealImage?.url && (
-            <div>
-              <h4 className="mb-2 font-semibold">Deal Badge Image</h4>
-
-              <img
-                src={product.dealImage.url}
-                alt={product.dealImage.alt || "Deal badge"}
-                className="h-20 w-20 rounded-xl border object-cover"
-              />
-            </div>
-          )}
-
           <div>
             <h4 className="mb-2 font-semibold">Attributes</h4>
 

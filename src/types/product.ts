@@ -134,11 +134,10 @@ export interface Product {
   isBogo: boolean;
 
   // Product Highlights — Try & Buy eligibility and a merchandising deal
-  // badge, independent of the flags above. dealImage is required (backend-
-  // enforced) whenever dealType isn't "none".
+  // type, independent of the flags above. The deal badge shown in the
+  // consumer app is generated from dealType alone (no image needed).
   tryAndBuy: boolean;
   dealType: DealType;
-  dealImage: ProductImage;
 
   images: ProductImage[];
   video: string;
@@ -208,7 +207,6 @@ export interface CreateProductRequest {
 
   tryAndBuy?: boolean;
   dealType?: DealType;
-  dealImage?: ProductImage;
 
   images?: ProductImage[];
   video?: string;

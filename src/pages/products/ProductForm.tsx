@@ -19,7 +19,7 @@ import {
 import { Combobox } from "@/components/ui/combobox";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { toast } from "sonner";
-import { AlertCircle, Check, Loader2, Upload } from "lucide-react";
+import { Check, Loader2, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/utils/format";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,6 @@ import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
-import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
 import type { DropdownOptions } from "@/types/option";
 import type { ProductImage } from "@/types/product";
 
@@ -113,30 +112,6 @@ function attributeOptions(key: string, options: DropdownOptions): string[] {
   }
 }
 
-/**
- * ==========================================
- * Deal Image Upload State
- * ==========================================
- * Mirrors BannerForm.tsx's ImageUploadState — `image` is the only value
- * that ever gets submitted, set atomically from either an edit-mode load
- * or a successful Cloudinary upload.
- */
-interface ImageUploadState {
-  image: ProductImage;
-  previewUrl: string;
-  status: "idle" | "uploading" | "error";
-  error: string | null;
-  progress: number;
-}
-
-const EMPTY_DEAL_IMAGE_STATE: ImageUploadState = {
-  image: { url: "", publicId: "" },
-  previewUrl: "",
-  status: "idle",
-  error: null,
-  progress: 0,
-};
-
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -149,9 +124,6 @@ export default function ProductForm() {
   const [loadingProduct, setLoadingProduct] = useState(isEdit);
   const [step, setStep] = useState(0);
   const [images, setImages] = useState<ProductImage[]>([]);
-  const [dealImageState, setDealImageState] = useState<ImageUploadState>(
-    EMPTY_DEAL_IMAGE_STATE,
-  );
 
   const form = useForm<Form>({
     resolver: zodResolver(productSchema),
@@ -235,13 +207,6 @@ export default function ProductForm() {
         });
 
         setImages(product.images);
-        setDealImageState({
-          image: product.dealImage,
-          previewUrl: product.dealImage.url,
-          status: "idle",
-          error: null,
-          progress: 0,
-        });
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load product",
@@ -298,46 +263,15 @@ export default function ProductForm() {
       return;
     }
 
-    if (step === 4 && dealType !== "none") {
-      if (dealImageState.status === "uploading") {
-        toast.error("Please wait for the deal image to finish uploading");
-        return;
-      }
-
-      if (!dealImageState.image.url) {
-        toast.error("A deal image is required for the selected deal type");
-        return;
-      }
-    }
-
     if (step < STEPS.length - 1) setStep(step + 1);
   };
 
   const onSubmit = async (values: Form) => {
-    if (values.dealType !== "none") {
-      if (dealImageState.status === "uploading") {
-        toast.error("Please wait for the deal image to finish uploading");
-        setStep(4);
-        return;
-      }
-
-      if (!dealImageState.image.url) {
-        toast.error("A deal image is required for the selected deal type");
-        setStep(4);
-        return;
-      }
-    }
-
     try {
       if (isEdit && id) {
-        await updateProduct(
-          id,
-          updateProductPayload(values, images, dealImageState.image),
-        );
+        await updateProduct(id, updateProductPayload(values, images));
       } else {
-        await createProduct(
-          createProductPayload(values, images, dealImageState.image),
-        );
+        await createProduct(createProductPayload(values, images));
       }
 
       navigate("/products");
@@ -374,50 +308,6 @@ export default function ProductForm() {
     }));
     setImages((prev) => [...prev, ...previews]);
     toast.success(`${files.length} image(s) added`);
-  };
-
-  const handleDealImageFile = async (files: FileList | null) => {
-    const file = files?.[0];
-
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-
-    setDealImageState((prev) => ({
-      ...prev,
-      previewUrl,
-      status: "uploading",
-      error: null,
-      progress: 0,
-    }));
-
-    try {
-      const uploaded = await uploadImageToCloudinary(file, {
-        folder: "vaymp/products/deal-image",
-        onProgress: (progress) =>
-          setDealImageState((prev) => ({ ...prev, progress })),
-      });
-
-      setDealImageState({
-        image: uploaded,
-        previewUrl: uploaded.url,
-        status: "idle",
-        error: null,
-        progress: 100,
-      });
-
-      toast.success("Deal image uploaded");
-    } catch (error) {
-      setDealImageState((prev) => ({
-        ...prev,
-        status: "error",
-        error: error instanceof Error ? error.message : "Upload failed",
-      }));
-
-      toast.error(
-        error instanceof Error ? error.message : "Deal image upload failed",
-      );
-    }
   };
 
   if (loadingProduct) {
@@ -829,60 +719,11 @@ export default function ProductForm() {
                     </div>
 
                     {dealType !== "none" && (
-                      <div className="space-y-2">
-                        <Label>Deal Badge Image (required)</Label>
-
-                        <label
-                          className={cn(
-                            "flex max-w-sm flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40",
-                            dealImageState.status === "uploading"
-                              ? "cursor-not-allowed opacity-60"
-                              : "cursor-pointer",
-                          )}
-                        >
-                          {dealImageState.status === "uploading" ? (
-                            <Loader2 className="mb-2 h-5 w-5 animate-spin text-primary" />
-                          ) : (
-                            <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
-                          )}
-                          <div className="text-xs font-medium">
-                            {dealImageState.status === "uploading"
-                              ? `Uploading… ${dealImageState.progress}%`
-                              : dealImageState.image.url
-                                ? "Replace image"
-                                : "Upload deal image"}
-                          </div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={dealImageState.status === "uploading"}
-                            onChange={(e) => void handleDealImageFile(e.target.files)}
-                          />
-                        </label>
-
-                        {dealImageState.error && (
-                          <p className="flex items-center gap-1.5 text-xs text-destructive">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            {dealImageState.error}
-                          </p>
-                        )}
-
-                        {(dealImageState.previewUrl || dealImageState.image.url) && (
-                          <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-muted">
-                            <img
-                              src={dealImageState.previewUrl || dealImageState.image.url}
-                              className="h-full w-full object-cover"
-                              alt="Deal badge preview"
-                            />
-                            {dealImageState.status === "uploading" && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                <Loader2 className="h-4 w-4 animate-spin text-white" />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
+                        The deal badge shown in the app is generated
+                        automatically from the deal type above — no image
+                        needed.
+                      </p>
                     )}
                   </div>
                 </div>
