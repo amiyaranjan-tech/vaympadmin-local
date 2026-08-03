@@ -49,13 +49,6 @@ export interface OfferSellerPreview {
   logo: { url: string; publicId: string };
 }
 
-// Same {url, publicId} shape as UploadedImage (types/upload.ts) — a real
-// Cloudinary upload result, reused as-is rather than a duplicate type.
-export interface OfferBannerImage {
-  url: string;
-  publicId: string;
-}
-
 // "entire_shop": every eligible product currently belonging to `seller`
 // participates dynamically. "selected_products": only `products` (or, for
 // free-product pool, `freeProductIds`) participate. Mirrors the backend's
@@ -67,6 +60,17 @@ export type OfferScope = "entire_shop" | "selected_products";
  * Offer
  * ==========================================
  */
+
+// Up to 5 optional banners. For "bogo" they show on THIS offer's own card
+// in the shop's "Deals at this Shop" carousel; for a tier ladder, the
+// whole campaign's set lives on one row. Array order IS display priority
+// (index 0 shows first) — slot 0 also doubles as this offer's image on
+// the site-wide Home/Deals promotional carousel, when present.
+export interface OfferShopBanner {
+  url: string;
+  publicId: string;
+  caption: string;
+}
 
 export interface Offer {
   _id: string;
@@ -92,12 +96,7 @@ export interface Offer {
   freeProductIds: OfferProductPreview[] | string[];
   maximumFreeItems: number | null;
 
-  // Promotional banner — required for bogo, optional for tier offers (see
-  // backend models/Offer.js). Same field, same ordering mechanism either way.
-  bannerImage: OfferBannerImage;
-  // UI banner-carousel position (1 = first) — NOT `priority` below, which
-  // is deal-conflict resolution. Null when this offer has no banner.
-  bannerPriority: number | null;
+  shopBanners: OfferShopBanner[];
 
   // tier types only
   minSpend: number;
@@ -112,9 +111,9 @@ export interface Offer {
   isEnabled: boolean;
   startDate: string;
   endDate: string;
-  // Deal-conflict resolution only (which executable offer wins on a
-  // matching product/cart line) — see `bannerPriority` above for the
-  // separate, UI-only banner-ordering concept.
+  // Deal-conflict resolution (which executable offer wins on a matching
+  // product/cart line) — also doubles as the site-wide promotional-
+  // carousel ordering (see backend deals.service.js#getPromotionalBanners).
   priority: number;
 
   createdBy: string | null;
@@ -123,19 +122,6 @@ export interface Offer {
 
   createdAt: string;
   updatedAt: string;
-}
-
-/**
- * ==========================================
- * Banner Priorities (admin — duplicate-avoidance UX)
- * ==========================================
- */
-
-export interface BannerPriorityEntry {
-  _id: string;
-  title: string;
-  type: OfferType;
-  bannerPriority: number;
 }
 
 /**
@@ -175,8 +161,7 @@ export interface CreateBogoOfferRequest {
   maximumFreeItems?: number | null;
   isEnabled?: boolean;
   priority?: number;
-  bannerImage: OfferBannerImage;
-  bannerPriority: number;
+  shopBanners?: OfferShopBanner[];
   startDate: string;
   endDate: string;
 }
@@ -203,9 +188,8 @@ export interface CreateTierOfferRequest {
   maxUses?: number | null;
   isEnabled?: boolean;
   priority?: number;
-  // Optional — a tier offer works fine with no promotional banner at all.
-  bannerImage?: OfferBannerImage;
-  bannerPriority?: number | null;
+  // Optional — a tier offer works fine with no shop banners at all.
+  shopBanners?: OfferShopBanner[];
   startDate: string;
   endDate: string;
 }
@@ -239,11 +223,10 @@ export interface BulkUpsertTieredRequest {
   // backend offer.service.js#bulkUpsertTiered), never reconfigured per tier.
   scope: OfferScope;
   products: string[];
-  // One optional promotional banner for the WHOLE ladder, not per tier —
-  // the backend stores it on exactly one underlying Offer document, never
+  // One optional shop-banner set for the WHOLE ladder, not per tier — the
+  // backend stores it on exactly one underlying Offer document, never
   // duplicated across rows (see offer.service.js#bulkUpsertTiered).
-  bannerImage?: OfferBannerImage;
-  bannerPriority?: number | null;
+  shopBanners?: OfferShopBanner[];
   tiers: TierRow[];
 }
 

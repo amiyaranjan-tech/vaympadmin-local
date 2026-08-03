@@ -207,10 +207,6 @@ export default function useOffers(initialParams?: OfferQueryParams) {
     }
   }, []);
 
-  const getBannerPriorities = useCallback(async () => {
-    return offerService.getBannerPriorities();
-  }, []);
-
   /**
    * ==========================================
    * Tiered Deals (per seller)
@@ -304,8 +300,6 @@ export default function useOffers(initialParams?: OfferQueryParams) {
 
     deleteOffer,
     updateStatus,
-
-    getBannerPriorities,
 
     getTieredBySeller,
     bulkUpsertTiered,

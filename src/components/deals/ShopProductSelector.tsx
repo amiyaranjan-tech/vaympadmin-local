@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Eye, Loader2, PackageSearch, Search } from "lucide-react";
+import { AlertCircle, AlertTriangle, Eye, Loader2, PackageSearch, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,21 @@ import { ProductQuickViewDrawer } from "@/components/products/ProductQuickViewDr
 
 import useProducts from "@/hooks/useProducts";
 import { formatCurrency } from "@/utils/format";
-import type { Product } from "@/types/product";
+import type { DealType, Product } from "@/types/product";
+
+// Display-only hint that this product is already tagged with another
+// deal — NOT a block, admins can still add it here (multiple offers CAN
+// cover the same product; nothing here removes the existing one). Reads
+// Product.dealType, which is kept accurate for "bogo" automatically (see
+// offer.service.js#syncBogoProductDealTypes) but NOT yet auto-synced for
+// tier types (see scripts/reseedProductsAndDeals.js's own note on this
+// gap) — treat a missing tier badge as "maybe", not "definitely none".
+const DEAL_TYPE_LABEL: Partial<Record<DealType, string>> = {
+  bogo: "BOGO deal",
+  tier_amount: "Spend deal",
+  tier_percentage: "Spend deal",
+  free_shipping: "Free shipping deal",
+};
 
 const SEARCH_DEBOUNCE_MS = 300;
 // No infinite-scroll pagination — same precedent as
@@ -139,6 +153,14 @@ export function ShopProductSelector({ sellerId, selectedIds, onChange }: ShopPro
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
                     {product.category} · {product.subcategory}
                   </div>
+
+                  {product.dealType && product.dealType !== "none" && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      Already in a {DEAL_TYPE_LABEL[product.dealType] ?? "deal"} — adding this
+                      offer won't remove it.
+                    </div>
+                  )}
                 </div>
 
                 <Button

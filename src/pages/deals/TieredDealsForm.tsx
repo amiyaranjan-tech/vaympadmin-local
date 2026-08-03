@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import useOffers from "@/hooks/useOffers";
 import useSellers from "@/hooks/useSellers";
 import type { Seller } from "@/types/seller";
-import type { BannerPriorityEntry, OfferScope } from "@/types/offer";
+import type { OfferScope } from "@/types/offer";
 
 import { ShopProductSelector } from "@/components/deals/ShopProductSelector";
 
@@ -24,6 +24,7 @@ import { uploadOfferBannerImage } from "@/utils/localImageUpload";
 import { tierRowsSchema, TierRowsFormValues as Form } from "./offer.schema";
 import { buildTierBulkPayload } from "./offer.mapper";
 import { TierRowsField } from "./TierRowsField";
+import { EMPTY_SHOP_BANNER, padShopBanners } from "./shopBanners";
 
 function SectionHeading({ title, description }: { title: string; description?: string }) {
   return (
@@ -82,14 +83,15 @@ export default function TieredDealsForm() {
   const { sellerId } = useParams();
   const navigate = useNavigate();
 
-  const { getTieredBySeller, bulkUpsertTiered, getBannerPriorities } = useOffers();
+  const { getTieredBySeller, bulkUpsertTiered } = useOffers();
   const { getSeller } = useSellers();
 
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
-  const [bannerPriorities, setBannerPriorities] = useState<BannerPriorityEntry[]>([]);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [uploadingShopBannerIndex, setUploadingShopBannerIndex] = useState<number | null>(null);
+  const shopBannerInputRef = useRef<HTMLInputElement>(null);
+  const shopBannerSlotRef = useRef<number | null>(null);
 
   const form = useForm<Form>({
     resolver: zodResolver(tierRowsSchema),
@@ -97,55 +99,39 @@ export default function TieredDealsForm() {
     defaultValues: {
       scope: "entire_shop",
       products: [],
-      bannerImage: { url: "", publicId: "" },
-      bannerPriority: "",
+      shopBanners: padShopBanners(),
       tiers: [EMPTY_ROW],
     },
   });
 
   const scope = form.watch("scope");
   const products = form.watch("products");
-  const bannerImage = form.watch("bannerImage");
-  const bannerPriority = form.watch("bannerPriority");
+  const shopBanners = form.watch("shopBanners");
 
-  // ==========================================
-  // Banner Priority — duplicate-avoidance UX (backend is authoritative;
-  // this is a proactive hint, not the real validation)
-  // ==========================================
-  useEffect(() => {
-    void getBannerPriorities().then(setBannerPriorities).catch(() => undefined);
-  }, [getBannerPriorities]);
-
-  // Existing tier offers of this ladder never conflict with themselves —
-  // mirrors the backend's own exclusion (see offer.service.js#bulkUpsertTiered).
-  const ownOfferIds = useMemo(
-    () => new Set(form.getValues("tiers").map((t) => t._id).filter(Boolean)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loading],
-  );
-
-  const bannerPriorityNum = !bannerPriority?.trim() ? null : Number(bannerPriority);
-
-  const priorityConflict = useMemo(
-    () =>
-      bannerPriorityNum == null
-        ? undefined
-        : bannerPriorities.find(
-            (p) => !ownOfferIds.has(p._id) && p.bannerPriority === bannerPriorityNum,
-          ),
-    [bannerPriorities, bannerPriorityNum, ownOfferIds],
-  );
-
-  const handleBannerFile = async (file: File) => {
+  const handleShopBannerFile = async (index: number, file: File) => {
     try {
-      setUploadingBanner(true);
+      setUploadingShopBannerIndex(index);
       const uploaded = await uploadOfferBannerImage(file);
-      form.setValue("bannerImage", uploaded, { shouldValidate: true });
+      const next = [...form.getValues("shopBanners")];
+      next[index] = { ...uploaded, caption: next[index]?.caption ?? "" };
+      form.setValue("shopBanners", next, { shouldValidate: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Banner upload failed");
     } finally {
-      setUploadingBanner(false);
+      setUploadingShopBannerIndex(null);
     }
+  };
+
+  const removeShopBanner = (index: number) => {
+    const next = [...form.getValues("shopBanners")];
+    next[index] = EMPTY_SHOP_BANNER;
+    form.setValue("shopBanners", next, { shouldValidate: true });
+  };
+
+  const setShopBannerCaption = (index: number, caption: string) => {
+    const next = [...form.getValues("shopBanners")];
+    next[index] = { ...next[index], caption };
+    form.setValue("shopBanners", next);
   };
 
   useEffect(() => {
@@ -173,10 +159,9 @@ export default function TieredDealsForm() {
             products: (first.products as { _id: string }[] | string[]).map((p) =>
               typeof p === "string" ? p : p._id,
             ),
-            // The banner lives on whichever tier is first, per the
+            // The banner set lives on whichever tier is first, per the
             // backend's own convention — see offer.service.js#bulkUpsertTiered.
-            bannerImage: first.bannerImage ?? { url: "", publicId: "" },
-            bannerPriority: first.bannerPriority != null ? String(first.bannerPriority) : "",
+            shopBanners: padShopBanners(first.shopBanners),
             tiers: tiers.map((offer) => ({
               _id: offer._id,
               title: offer.title,
@@ -291,94 +276,82 @@ export default function TieredDealsForm() {
         </Card>
 
         {/* ========================================== */}
-        {/* Promotional Banner — one banner for the WHOLE ladder */}
+        {/* Shop Page Banners — one set for the WHOLE ladder */}
         {/* ========================================== */}
         <Card className="space-y-4 rounded-2xl p-6 shadow-soft">
           <SectionHeading
-            title="Promotional Banner"
-            description="Optional — represents the whole tier campaign, not any single tier. This ladder works normally without one."
+            title="Shop Page Banners (optional)"
+            description="Represents the whole tier campaign, not any single tier — this ladder works normally without one. Slot order is display order — slot 1 shows first and also doubles as this campaign's image on the site-wide Home/Deals promotional carousel."
           />
 
-          <div className="space-y-2">
-            <Label>Banner Image</Label>
+          <input
+            ref={shopBannerInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              const index = shopBannerSlotRef.current;
+              if (file && index !== null) void handleShopBannerFile(index, file);
+              e.target.value = "";
+            }}
+          />
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleBannerFile(file);
-                e.target.value = "";
-              }}
-            />
+          <div className="space-y-3">
+            {shopBanners.map((banner, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-xl border p-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                  {banner.url ? (
+                    <img src={banner.url} alt={`Banner ${index + 1}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                  )}
+                </div>
 
-            {bannerImage.url ? (
-              <div className="space-y-2">
-                <img
-                  src={bannerImage.url}
-                  alt="Offer banner preview"
-                  className="h-32 w-full rounded-xl border object-cover"
-                />
-                <div className="flex gap-2">
+                <div className="flex-1 space-y-2">
+                  <Input
+                    placeholder="Optional caption shown on this banner"
+                    value={banner.caption}
+                    onChange={(e) => setShopBannerCaption(index, e.target.value)}
+                  />
+                </div>
+
+                <div className="flex shrink-0 gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="rounded-lg"
-                    disabled={uploadingBanner}
-                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingShopBannerIndex === index}
+                    onClick={() => {
+                      shopBannerSlotRef.current = index;
+                      shopBannerInputRef.current?.click();
+                    }}
                   >
-                    Change Image
+                    {uploadingShopBannerIndex === index ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : banner.url ? (
+                      "Change"
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-lg text-destructive"
-                    onClick={() =>
-                      form.setValue("bannerImage", { url: "", publicId: "" }, { shouldValidate: true })
-                    }
-                  >
-                    <X className="mr-1 h-3 w-3" />
-                    Remove
-                  </Button>
+
+                  {banner.url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg text-destructive"
+                      onClick={() => removeShopBanner(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-xl"
-                disabled={uploadingBanner}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploadingBanner ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                {uploadingBanner ? "Uploading..." : "Upload Banner"}
-              </Button>
-            )}
+            ))}
           </div>
-
-          {bannerImage.url && (
-            <div className="space-y-2">
-              <Label>Banner Priority</Label>
-              <Input type="number" min={1} placeholder="e.g. 1" {...form.register("bannerPriority")} />
-              <p className="text-xs text-muted-foreground">
-                Controls this banner's position in the consumer promotional banner carousel. 1 appears
-                first.
-              </p>
-              {priorityConflict && (
-                <p className="text-xs text-destructive">
-                  Priority {bannerPriorityNum} is already in use by "{priorityConflict.title}".
-                </p>
-              )}
-            </div>
-          )}
         </Card>
 
         <TierRowsField form={form} />

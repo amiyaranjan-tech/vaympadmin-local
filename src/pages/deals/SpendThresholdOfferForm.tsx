@@ -13,12 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Combobox } from "@/components/ui/combobox";
 
 import useOffers from "@/hooks/useOffers";
 import useSellers from "@/hooks/useSellers";
-import useDropdownOptions from "@/hooks/useDropdownOptions";
-import type { BannerPriorityEntry, OfferScope } from "@/types/offer";
+import type { OfferScope } from "@/types/offer";
 
 import { ShopProductSelector } from "@/components/deals/ShopProductSelector";
 import { TargetPicker } from "@/pages/marketing/banners/TargetPicker";
@@ -27,6 +25,7 @@ import { uploadOfferBannerImage } from "@/utils/localImageUpload";
 
 import { tierOfferSchema, TierOfferFormValues as Form } from "./offer.schema";
 import { buildTierOfferPayload } from "./offer.mapper";
+import { EMPTY_SHOP_BANNER, padShopBanners } from "./shopBanners";
 
 // Stable reference — see BogoOfferForm.tsx's INITIAL_PRODUCT_PARAMS for why
 // this can't be a fresh literal on every render.
@@ -81,14 +80,14 @@ export default function SpendThresholdOfferForm() {
   const presetSellerId = searchParams.get("seller") ?? "";
   const presetShopName = searchParams.get("shopName") ?? "";
 
-  const { getOffer, createTier, updateTier, getBannerPriorities } = useOffers();
-  const { options, addOption } = useDropdownOptions();
+  const { getOffer, createTier, updateTier } = useOffers();
 
   const [loadingOffer, setLoadingOffer] = useState(isEdit);
   const [sellerSearch, setSellerSearch] = useState("");
-  const [bannerPriorities, setBannerPriorities] = useState<BannerPriorityEntry[]>([]);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [uploadingShopBannerIndex, setUploadingShopBannerIndex] = useState<number | null>(null);
+  const shopBannerInputRef = useRef<HTMLInputElement>(null);
+  const shopBannerSlotRef = useRef<number | null>(null);
 
   const form = useForm<Form>({
     resolver: zodResolver(tierOfferSchema),
@@ -107,8 +106,7 @@ export default function SpendThresholdOfferForm() {
       maxUses: "",
       isEnabled: true,
       priority: 0,
-      bannerImage: { url: "", publicId: "" },
-      bannerPriority: "",
+      shopBanners: padShopBanners(),
       startDate: "",
       endDate: "",
     },
@@ -117,8 +115,7 @@ export default function SpendThresholdOfferForm() {
   const seller = form.watch("seller");
   const scope = form.watch("scope");
   const products = form.watch("products");
-  const bannerImage = form.watch("bannerImage");
-  const bannerPriority = form.watch("bannerPriority");
+  const shopBanners = form.watch("shopBanners");
 
   // Tracks whether the seller field has ever resolved to a real value yet
   // — the very first time it's set (initial pick/preselect, or edit
@@ -172,34 +169,30 @@ export default function SpendThresholdOfferForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seller]);
 
-  // ==========================================
-  // Banner Priority — duplicate-avoidance UX (backend is authoritative;
-  // this is a proactive hint, not the real validation)
-  // ==========================================
-  useEffect(() => {
-    void getBannerPriorities().then(setBannerPriorities).catch(() => undefined);
-  }, [getBannerPriorities]);
-
-  const bannerPriorityNum = !bannerPriority?.trim() ? null : Number(bannerPriority);
-
-  const priorityConflict = useMemo(
-    () =>
-      bannerPriorityNum == null
-        ? undefined
-        : bannerPriorities.find((p) => p._id !== id && p.bannerPriority === bannerPriorityNum),
-    [bannerPriorities, bannerPriorityNum, id],
-  );
-
-  const handleBannerFile = async (file: File) => {
+  const handleShopBannerFile = async (index: number, file: File) => {
     try {
-      setUploadingBanner(true);
+      setUploadingShopBannerIndex(index);
       const uploaded = await uploadOfferBannerImage(file);
-      form.setValue("bannerImage", uploaded, { shouldValidate: true });
+      const next = [...form.getValues("shopBanners")];
+      next[index] = { ...uploaded, caption: next[index]?.caption ?? "" };
+      form.setValue("shopBanners", next, { shouldValidate: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Banner upload failed");
     } finally {
-      setUploadingBanner(false);
+      setUploadingShopBannerIndex(null);
     }
+  };
+
+  const removeShopBanner = (index: number) => {
+    const next = [...form.getValues("shopBanners")];
+    next[index] = EMPTY_SHOP_BANNER;
+    form.setValue("shopBanners", next, { shouldValidate: true });
+  };
+
+  const setShopBannerCaption = (index: number, caption: string) => {
+    const next = [...form.getValues("shopBanners")];
+    next[index] = { ...next[index], caption };
+    form.setValue("shopBanners", next);
   };
 
   /**
@@ -241,8 +234,7 @@ export default function SpendThresholdOfferForm() {
           maxUses: offer.maxUses != null ? String(offer.maxUses) : "",
           isEnabled: offer.isEnabled,
           priority: offer.priority,
-          bannerImage: offer.bannerImage ?? { url: "", publicId: "" },
-          bannerPriority: offer.bannerPriority != null ? String(offer.bannerPriority) : "",
+          shopBanners: padShopBanners(offer.shopBanners),
           startDate: offer.startDate.slice(0, 10),
           endDate: offer.endDate.slice(0, 10),
         });
@@ -298,14 +290,7 @@ export default function SpendThresholdOfferForm() {
 
           <div className="space-y-2">
             <Label>Offer Title</Label>
-            <Combobox
-              value={form.watch("title")}
-              onChange={(v) => form.setValue("title", v, { shouldValidate: true })}
-              onCreate={(v) => addOption({ field: "offerTitle", value: v })}
-              options={options.offerTitles}
-              placeholder="Select or add an offer title"
-              searchPlaceholder="Search or type to add…"
-            />
+            <Input placeholder="e.g. Spend ₹999, Get ₹200 OFF" {...form.register("title")} />
             {form.formState.errors.title && (
               <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
             )}
@@ -443,94 +428,82 @@ export default function SpendThresholdOfferForm() {
         </Card>
 
         {/* ========================================== */}
-        {/* Promotional Banner */}
+        {/* Shop Page Banners */}
         {/* ========================================== */}
         <Card className="space-y-4 rounded-2xl p-6 shadow-soft">
           <SectionHeading
-            title="Promotional Banner"
-            description="Optional — this offer works normally without one."
+            title="Shop Page Banners (optional)"
+            description="Up to 5 images shown on this offer's own card. Slot order is display order — slot 1 shows first and also doubles as this offer's image on the site-wide Home/Deals promotional carousel."
           />
 
-          <div className="space-y-2">
-            <Label>Banner Image</Label>
+          <input
+            ref={shopBannerInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              const index = shopBannerSlotRef.current;
+              if (file && index !== null) void handleShopBannerFile(index, file);
+              e.target.value = "";
+            }}
+          />
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleBannerFile(file);
-                e.target.value = "";
-              }}
-            />
+          <div className="space-y-3">
+            {shopBanners.map((banner, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-xl border p-3">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                  {banner.url ? (
+                    <img src={banner.url} alt={`Banner ${index + 1}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                  )}
+                </div>
 
-            {bannerImage.url ? (
-              <div className="space-y-2">
-                <img
-                  src={bannerImage.url}
-                  alt="Offer banner preview"
-                  className="h-32 w-full rounded-xl border object-cover"
-                />
-                <div className="flex gap-2">
+                <div className="flex-1 space-y-2">
+                  <Input
+                    placeholder="Optional caption shown on this banner"
+                    value={banner.caption}
+                    onChange={(e) => setShopBannerCaption(index, e.target.value)}
+                  />
+                </div>
+
+                <div className="flex shrink-0 gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="rounded-lg"
-                    disabled={uploadingBanner}
-                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingShopBannerIndex === index}
+                    onClick={() => {
+                      shopBannerSlotRef.current = index;
+                      shopBannerInputRef.current?.click();
+                    }}
                   >
-                    Change Image
+                    {uploadingShopBannerIndex === index ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : banner.url ? (
+                      "Change"
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-lg text-destructive"
-                    onClick={() =>
-                      form.setValue("bannerImage", { url: "", publicId: "" }, { shouldValidate: true })
-                    }
-                  >
-                    <X className="mr-1 h-3 w-3" />
-                    Remove
-                  </Button>
+
+                  {banner.url && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg text-destructive"
+                      onClick={() => removeShopBanner(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-xl"
-                disabled={uploadingBanner}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploadingBanner ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                {uploadingBanner ? "Uploading..." : "Upload Banner"}
-              </Button>
-            )}
+            ))}
           </div>
-
-          {bannerImage.url && (
-            <div className="space-y-2">
-              <Label>Banner Priority</Label>
-              <Input type="number" min={1} placeholder="e.g. 1" {...form.register("bannerPriority")} />
-              <p className="text-xs text-muted-foreground">
-                Controls this offer banner's position in the consumer promotional banner carousel. 1
-                appears first.
-              </p>
-              {priorityConflict && (
-                <p className="text-xs text-destructive">
-                  Priority {bannerPriorityNum} is already in use by "{priorityConflict.title}".
-                </p>
-              )}
-            </div>
-          )}
         </Card>
 
         {/* ========================================== */}
@@ -543,8 +516,8 @@ export default function SpendThresholdOfferForm() {
             <Label>Offer Priority</Label>
             <Input type="number" {...form.register("priority")} />
             <p className="text-xs text-muted-foreground">
-              Used when multiple executable offers match the same cart — never confused with Banner
-              Priority above, which only controls UI ordering.
+              Used when multiple executable offers match the same cart. Also orders this offer's
+              banner on the site-wide Home/Deals promotional carousel — higher shows first.
             </p>
           </div>
         </Card>

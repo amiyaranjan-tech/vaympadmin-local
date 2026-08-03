@@ -1,7 +1,6 @@
 import api from "./axios";
 
 import type {
-  BannerPriorityEntry,
   BulkUpsertTieredRequest,
   CreateBogoOfferRequest,
   CreateTierOfferRequest,
@@ -111,21 +110,6 @@ const offerApi = {
     const response = await api.patch<OfferApiResponse<Offer>>(
       `/offers/${id}/status`,
       payload,
-    );
-
-    return response.data;
-  },
-
-  /**
-   * ==========================================
-   * Get Banner Priorities
-   * ==========================================
-   * Every non-deleted offer (any type) currently occupying a banner
-   * position — duplicate-avoidance UX for the banner priority field.
-   */
-  getBannerPriorities: async (): Promise<OfferApiResponse<BannerPriorityEntry[]>> => {
-    const response = await api.get<OfferApiResponse<BannerPriorityEntry[]>>(
-      "/offers/banner-priorities",
     );
 
     return response.data;

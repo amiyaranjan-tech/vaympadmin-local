@@ -46,18 +46,21 @@ const EMPTY: DropdownOptions = {
   offerTitles: [],
 };
 
-const insertSorted = (list: string[], value: string) =>
-  list.some((v) => v.toLowerCase() === value.toLowerCase())
-    ? list
-    : [...list, value].sort();
+// `list` can arrive undefined if the backend response is missing this
+// field entirely (e.g. a field added here before the API deploy that
+// serves it) — tolerate that rather than crashing the whole form.
+const insertSorted = (list: string[] | undefined, value: string) =>
+  (list ?? []).some((v) => v.toLowerCase() === value.toLowerCase())
+    ? (list ?? [])
+    : [...(list ?? []), value].sort();
 
-const insertSize = (list: string[], value: string) =>
-  list.some((v) => v.toLowerCase() === value.toLowerCase())
-    ? list
-    : sortSizes([...list, value]);
+const insertSize = (list: string[] | undefined, value: string) =>
+  (list ?? []).some((v) => v.toLowerCase() === value.toLowerCase())
+    ? (list ?? [])
+    : sortSizes([...(list ?? []), value]);
 
-const removeFromList = (list: string[], value: string) =>
-  list.filter((v) => v.toLowerCase() !== value.toLowerCase());
+const removeFromList = (list: string[] | undefined, value: string) =>
+  (list ?? []).filter((v) => v.toLowerCase() !== value.toLowerCase());
 
 export default function useDropdownOptions() {
   const [options, setOptions] = useState<DropdownOptions>(EMPTY);

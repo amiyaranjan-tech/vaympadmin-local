@@ -118,10 +118,10 @@ export default function Deals() {
 
                 return (
                   <Card key={offer._id} className="overflow-hidden rounded-2xl p-0 shadow-soft">
-                    {offer.bannerImage?.url && (
+                    {offer.shopBanners[0]?.url && (
                       <div
                         className="h-24 bg-cover bg-center bg-muted"
-                        style={{ backgroundImage: `url(${offer.bannerImage.url})` }}
+                        style={{ backgroundImage: `url(${offer.shopBanners[0].url})` }}
                       />
                     )}
 
@@ -141,7 +141,8 @@ export default function Deals() {
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             Offer Priority: {offer.priority}
-                            {offer.bannerPriority != null && ` · Banner Position: #${offer.bannerPriority}`}
+                            {offer.shopBanners.length > 0 &&
+                              ` · ${offer.shopBanners.length} banner${offer.shopBanners.length === 1 ? "" : "s"}`}
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {formatDate(offer.startDate)} → {formatDate(offer.endDate)}
@@ -229,8 +230,8 @@ export default function Deals() {
                               {offer.scope === "entire_shop"
                                 ? "Entire Shop"
                                 : `Specific Products · ${productCount} product${productCount === 1 ? "" : "s"}`}
-                              {offer.bannerImage?.url
-                                ? ` · Banner #${offer.bannerPriority}`
+                              {offer.shopBanners.length > 0
+                                ? ` · ${offer.shopBanners.length} banner${offer.shopBanners.length === 1 ? "" : "s"}`
                                 : " · No banner"}
                             </div>
                           </div>

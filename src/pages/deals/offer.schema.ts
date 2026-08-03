@@ -12,14 +12,21 @@ import { z } from "zod";
 // Same enum values as the backend (models/Offer.js#scope) — do not rename.
 const offerScope = z.enum(["entire_shop", "selected_products"]);
 
-// Client-side only concept — never sent to the backend as-is; the mapper
-// (offer.mapper.ts) translates it into an empty vs. populated
-// `freeProductIds` array, which is all the backend actually needs (see
-// cart.service.js#resolveEligibleFreeProducts: empty = automatic same-
-// collection -> category -> shop cascade, populated = restricted to
-// exactly these). Reuses the `offerScope` vocabulary rather than
-// inventing a second set of mode names.
-const freeProductMode = z.enum(["automatic", "selected_products"]);
+// Up to 5 optional banners — for "bogo" they show on THIS offer's own
+// card in the shop's "Deals at this Shop" carousel; for a tier ladder,
+// the whole campaign's set (see tierRowsSchema below). Array order IS
+// display priority (index 0 = first); slot 0 also doubles as the site-
+// wide Home/Deals promotional-carousel image when present.
+const shopBannersSchema = z
+  .array(
+    z.object({
+      url: z.string(),
+      publicId: z.string(),
+      caption: z.string().max(120).default(""),
+    }),
+  )
+  .max(5)
+  .default([]);
 
 export const bogoOfferSchema = z
   .object({
@@ -35,7 +42,8 @@ export const bogoOfferSchema = z
     getQuantity: z.coerce.number().int().min(1).default(1),
     getDiscountPercent: z.coerce.number().min(0).max(100).default(100),
 
-    freeProductMode: freeProductMode.default("automatic"),
+    // Admin always picks the free-item pool explicitly — no more
+    // "automatic same-collection -> category -> shop cascade" mode.
     freeProductIds: z.array(z.string()).default([]),
     // Kept as a raw string ("" = uncapped) rather than z.coerce.number() —
     // Number("") is 0, not NaN, so a coerced-number union would silently
@@ -44,14 +52,11 @@ export const bogoOfferSchema = z
     maximumFreeItems: z.string().optional().or(z.literal("")),
 
     isEnabled: z.boolean().default(true),
-    // Deal-conflict resolution only — see `bannerPriority` below for the
-    // separate, UI-only banner-ordering field.
+    // Deal-conflict resolution — also doubles as the site-wide
+    // promotional-carousel ordering (see backend models/Offer.js#priority).
     priority: z.coerce.number().int().default(0),
 
-    bannerImage: z.object({ url: z.string(), publicId: z.string() }).refine((v) => !!v.url, {
-      message: "Upload a banner image",
-    }),
-    bannerPriority: z.coerce.number().int().min(1, "Required"),
+    shopBanners: shopBannersSchema,
 
     startDate: z.string().min(1, "Required"),
     endDate: z.string().min(1, "Required"),
@@ -65,7 +70,7 @@ export const bogoOfferSchema = z
       });
     }
 
-    if (values.freeProductMode === "selected_products" && values.freeProductIds.length === 0) {
+    if (values.freeProductIds.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["freeProductIds"],
@@ -117,14 +122,13 @@ const tierOfferBaseSchema = z.object({
   maxUses: z.string().optional().or(z.literal("")),
 
   isEnabled: z.boolean().default(true),
-  // Deal-conflict resolution only — see `bannerPriority` below.
+  // Deal-conflict resolution — also doubles as the site-wide
+  // promotional-carousel ordering (see backend models/Offer.js#priority).
   priority: z.coerce.number().int().default(0),
 
-  // Optional — unlike bogo, a tier offer works fine with no promotional
-  // banner at all. bannerPriority stays a raw string ("" = no banner
-  // position) for the same reason as maximumDiscount/maxUses above.
-  bannerImage: z.object({ url: z.string(), publicId: z.string() }).default({ url: "", publicId: "" }),
-  bannerPriority: z.string().optional().or(z.literal("")),
+  // Optional — unlike bogo, a tier offer works fine with no shop banners
+  // at all.
+  shopBanners: shopBannersSchema,
 
   startDate: z.string().min(1, "Required"),
   endDate: z.string().min(1, "Required"),
@@ -198,14 +202,14 @@ export type TierOfferFormValues = z.infer<typeof tierOfferSchema>;
  * ==========================================
  * Tier Row (inside the per-shop Tiered Deals builder)
  * ==========================================
- * Same as tierOfferSchema, minus `seller`/`scope`/`products`/banner fields
+ * Same as tierOfferSchema, minus `seller`/`scope`/`products`/`shopBanners`
  * (see tierRowsSchema below — these are ladder-level settings, one
  * selection covers every row, never reconfigured per tier) and with an
  * optional `_id` marking an existing Offer to update in place.
  */
 
 export const tierRowSchema = tierOfferBaseSchema
-  .omit({ seller: true, scope: true, products: true, bannerImage: true, bannerPriority: true })
+  .omit({ seller: true, scope: true, products: true, shopBanners: true })
   .extend({
     _id: z.string().optional(),
   });
@@ -216,11 +220,10 @@ export const tierRowsSchema = z
   .object({
     scope: offerScope.default("entire_shop"),
     products: z.array(z.string()).default([]),
-    // One optional banner for the whole ladder, not per tier — same
-    // shape/reasoning as tierOfferBaseSchema's bannerImage/bannerPriority
-    // above, just ladder-level here (see offer.mapper.ts#buildTierBulkPayload).
-    bannerImage: z.object({ url: z.string(), publicId: z.string() }).default({ url: "", publicId: "" }),
-    bannerPriority: z.string().optional().or(z.literal("")),
+    // One optional banner set for the whole ladder, not per tier — same
+    // shape/reasoning as tierOfferBaseSchema's shopBanners above, just
+    // ladder-level here (see offer.mapper.ts#buildTierBulkPayload).
+    shopBanners: shopBannersSchema,
     tiers: z.array(tierRowSchema).min(1, "Add at least one tier"),
   })
   .superRefine((values, ctx) => {

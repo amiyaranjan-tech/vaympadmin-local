@@ -54,11 +54,11 @@ export function Combobox({
 
   const normalizedQuery = query.trim();
 
-  const filteredOptions = options.filter((option) =>
+  const filteredOptions = (options ?? []).filter((option) =>
     option.toLowerCase().includes(normalizedQuery.toLowerCase()),
   );
 
-  const exactMatch = options.some(
+  const exactMatch = (options ?? []).some(
     (option) => option.toLowerCase() === normalizedQuery.toLowerCase(),
   );
 

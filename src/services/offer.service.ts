@@ -1,7 +1,6 @@
 import offerApi from "@/api/offer.api";
 
 import type {
-  BannerPriorityEntry,
   BulkUpsertTieredRequest,
   CreateBogoOfferRequest,
   CreateTierOfferRequest,
@@ -66,12 +65,6 @@ class OfferService {
 
   async updateStatus(id: string, isEnabled: boolean): Promise<Offer> {
     const response = await offerApi.updateStatus(id, { isEnabled });
-
-    return this.handleResponse(response);
-  }
-
-  async getBannerPriorities(): Promise<BannerPriorityEntry[]> {
-    const response = await offerApi.getBannerPriorities();
 
     return this.handleResponse(response);
   }

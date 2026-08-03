@@ -42,18 +42,15 @@ export function buildBogoOfferPayload(values: BogoOfferFormValues): CreateBogoOf
     getQuantity: values.getQuantity,
     getDiscountPercent: values.getDiscountPercent,
 
-    // "automatic" mode submits an empty pool — the backend's existing
-    // same-collection -> category -> shop cascade takes over (see
-    // cart.service.js#resolveEligibleFreeProducts); "selected_products"
-    // submits exactly the admin-chosen ids, restricting the pool to them.
-    freeProductIds: values.freeProductMode === "automatic" ? [] : values.freeProductIds,
+    freeProductIds: values.freeProductIds,
     maximumFreeItems: toNullableNumber(values.maximumFreeItems),
 
     isEnabled: values.isEnabled,
     priority: values.priority,
 
-    bannerImage: values.bannerImage,
-    bannerPriority: values.bannerPriority,
+    // Drop empty slots — the form always renders 5, only filled ones (a
+    // real uploaded url) should ever reach the backend.
+    shopBanners: values.shopBanners.filter((b) => b.url),
 
     startDate: values.startDate,
     endDate: values.endDate,
@@ -85,11 +82,7 @@ export function buildTierOfferPayload(values: TierOfferFormValues): CreateTierOf
     isEnabled: values.isEnabled,
     priority: values.priority,
 
-    // Optional — omitted entirely (not an empty-url object) when no
-    // banner was uploaded, so the backend's optionalImageSchema default
-    // takes over rather than persisting a pointless empty object.
-    bannerImage: values.bannerImage.url ? values.bannerImage : undefined,
-    bannerPriority: toNullableNumber(values.bannerPriority),
+    shopBanners: values.shopBanners.filter((b) => b.url),
 
     startDate: values.startDate,
     endDate: values.endDate,
@@ -139,10 +132,7 @@ export function buildTierBulkPayload(values: TierRowsFormValues): BulkUpsertTier
     scope: values.scope,
     products: values.scope === "entire_shop" ? [] : values.products,
 
-    // Optional — omitted entirely (not an empty-url object) when no
-    // banner was uploaded, same reasoning as buildTierOfferPayload above.
-    bannerImage: values.bannerImage.url ? values.bannerImage : undefined,
-    bannerPriority: toNullableNumber(values.bannerPriority),
+    shopBanners: values.shopBanners.filter((b) => b.url),
 
     tiers: values.tiers.map(buildTierRowPayload),
   };
