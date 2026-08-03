@@ -49,7 +49,6 @@ export const productSchema = z.object({
 
   // Product Highlights
   tryAndBuy: z.boolean(),
-  dealType: z.enum(["none", "bogo", "tier_amount", "tier_percentage", "free_shipping"]),
 
   video: z.string().optional().or(z.literal("")),
 });

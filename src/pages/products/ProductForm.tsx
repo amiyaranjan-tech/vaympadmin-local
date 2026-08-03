@@ -33,7 +33,6 @@ import type { ProductImage } from "@/types/product";
 
 import { productSchema, ProductFormValues as Form } from "./product.schema";
 import { createProductPayload, updateProductPayload } from "./product.mapper";
-import { DEAL_TYPES, DEAL_TYPE_LABELS } from "./productMeta";
 
 const STEPS = [
   "Basics",
@@ -155,7 +154,6 @@ export default function ProductForm() {
       isLimitedStock: false,
       isBogo: false,
       tryAndBuy: false,
-      dealType: "none",
       video: "",
     },
   });
@@ -200,7 +198,6 @@ export default function ProductForm() {
           isLimitedStock: product.isLimitedStock,
           isBogo: product.isBogo,
           tryAndBuy: product.tryAndBuy,
-          dealType: product.dealType,
           video: product.video,
         });
 
@@ -231,7 +228,6 @@ export default function ProductForm() {
   const group = form.watch("group");
   const subcategory = form.watch("subcategory");
   const attributes = form.watch("attributes") ?? {};
-  const dealType = form.watch("dealType");
 
   // Taxonomy — Gender -> Category -> Subcategory. Category is a fixed,
   // curated list per gender (not admin-creatable); Subcategory depends on
@@ -679,36 +675,11 @@ export default function ProductForm() {
                       <span className="text-sm font-medium">Try & Buy</span>
                     </label>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Deal Type</Label>
-                        <Select
-                          value={dealType}
-                          onValueChange={(v) =>
-                            form.setValue("dealType", v as Form["dealType"])
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DEAL_TYPES.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {DEAL_TYPE_LABELS[type]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {dealType !== "none" && (
-                      <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-                        The deal badge shown in the app is generated
-                        automatically from the deal type above — no image
-                        needed.
-                      </p>
-                    )}
+                    <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
+                      Deal type (BOGO/Tiered/Free Shipping) is set by linking
+                      this product to a Deal, not here — see the Deals
+                      section.
+                    </p>
                   </div>
                 </div>
               )}
