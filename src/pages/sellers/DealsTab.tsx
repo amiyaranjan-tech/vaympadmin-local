@@ -25,14 +25,14 @@ export default function DealsTab({ seller, shopDeals }: DealsTabProps) {
     <TabsContent value="deals" className="mt-4">
       <div className="mb-3 flex justify-end gap-2">
         <Button asChild variant="outline" className="rounded-xl">
-          <Link to="/deals/bogo/new">
+          <Link to={`/deals/bogo/new?seller=${seller._id}&shopName=${encodeURIComponent(seller.shopName)}`}>
             <Plus className="mr-2 h-4 w-4" />
             Add BOGO offer
           </Link>
         </Button>
 
         <Button asChild className="rounded-xl">
-          <Link to={`/deals/spend-threshold/new?seller=${seller._id}`}>
+          <Link to={`/deals/spend-threshold/new?seller=${seller._id}&shopName=${encodeURIComponent(seller.shopName)}`}>
             <Plus className="mr-2 h-4 w-4" />
             Add spend offer
           </Link>

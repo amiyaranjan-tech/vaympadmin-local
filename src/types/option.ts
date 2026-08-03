@@ -48,7 +48,8 @@ export type DropdownOptionField =
   | "suitType"
   | "sherwaniType"
   | "dressType"
-  | "productCollection";
+  | "productCollection"
+  | "offerTitle";
 
 /**
  * ==========================================
@@ -102,6 +103,9 @@ export interface DropdownOptions {
   sherwaniTypes: string[];
   dressTypes: string[];
   productCollections: string[];
+  // Past Offer titles (bogo/tier) — global/flat, same "creatable combobox"
+  // spirit as productCollection above, not part of any taxonomy chain.
+  offerTitles: string[];
 }
 
 /**

@@ -43,6 +43,7 @@ const EMPTY: DropdownOptions = {
   sherwaniTypes: [],
   dressTypes: [],
   productCollections: [],
+  offerTitles: [],
 };
 
 const insertSorted = (list: string[], value: string) =>
@@ -216,6 +217,8 @@ export default function useDropdownOptions() {
             return { ...prev, dressTypes: insertSorted(prev.dressTypes, trimmed) };
           case "productCollection":
             return { ...prev, productCollections: insertSorted(prev.productCollections, trimmed) };
+          case "offerTitle":
+            return { ...prev, offerTitles: insertSorted(prev.offerTitles, trimmed) };
           default:
             return prev;
         }
@@ -346,6 +349,8 @@ export default function useDropdownOptions() {
             return { ...prev, dressTypes: removeFromList(prev.dressTypes, trimmed) };
           case "productCollection":
             return { ...prev, productCollections: removeFromList(prev.productCollections, trimmed) };
+          case "offerTitle":
+            return { ...prev, offerTitles: removeFromList(prev.offerTitles, trimmed) };
           default:
             return prev;
         }

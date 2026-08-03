@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Combobox } from "@/components/ui/combobox";
 
 import useOffers from "@/hooks/useOffers";
 import useSellers from "@/hooks/useSellers";
+import useDropdownOptions from "@/hooks/useDropdownOptions";
 import type { BannerPriorityEntry, OfferScope } from "@/types/offer";
 
 import { ShopProductSelector } from "@/components/deals/ShopProductSelector";
@@ -75,10 +77,12 @@ export default function SpendThresholdOfferForm() {
   const isEdit = Boolean(id);
 
   // Opened from Seller Details ("+ Add Spend Offer") — preselect that
-  // seller instead of making the admin pick it again (?seller=<id>).
+  // seller instead of making the admin pick it again (?seller=<id>&shopName=<name>).
   const presetSellerId = searchParams.get("seller") ?? "";
+  const presetShopName = searchParams.get("shopName") ?? "";
 
   const { getOffer, createTier, updateTier, getBannerPriorities } = useOffers();
+  const { options, addOption } = useDropdownOptions();
 
   const [loadingOffer, setLoadingOffer] = useState(isEdit);
   const [sellerSearch, setSellerSearch] = useState("");
@@ -133,10 +137,17 @@ export default function SpendThresholdOfferForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellerSearch]);
 
-  const sellerOptions = useMemo(
-    () => sellers.map((s) => ({ id: s._id, label: s.shopName, sublabel: s.city })),
-    [sellers],
-  );
+  const sellerOptions = useMemo(() => {
+    const options = sellers.map((s) => ({ id: s._id, label: s.shopName, sublabel: s.city }));
+
+    // presetSellerId may not be on the first fetched page — seed it so the
+    // picker shows the shop name immediately instead of a blank placeholder.
+    if (presetSellerId && presetShopName && !options.some((o) => o.id === presetSellerId)) {
+      options.unshift({ id: presetSellerId, label: presetShopName, sublabel: undefined });
+    }
+
+    return options;
+  }, [sellers, presetSellerId, presetShopName]);
 
   // ==========================================
   // Shop Change — clears qualifying products (RULE: never retain another
@@ -287,7 +298,14 @@ export default function SpendThresholdOfferForm() {
 
           <div className="space-y-2">
             <Label>Offer Title</Label>
-            <Input placeholder="Spend ₹999, Get ₹100 Off" {...form.register("title")} />
+            <Combobox
+              value={form.watch("title")}
+              onChange={(v) => form.setValue("title", v, { shouldValidate: true })}
+              onCreate={(v) => addOption({ field: "offerTitle", value: v })}
+              options={options.offerTitles}
+              placeholder="Select or add an offer title"
+              searchPlaceholder="Search or type to add…"
+            />
             {form.formState.errors.title && (
               <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
             )}
