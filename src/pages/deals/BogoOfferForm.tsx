@@ -137,7 +137,7 @@ export default function BogoOfferForm() {
     // presetSellerId may not be on the first fetched page — seed it so the
     // picker shows the shop name immediately instead of a blank placeholder.
     if (presetSellerId && presetShopName && !options.some((o) => o.id === presetSellerId)) {
-      options.unshift({ id: presetSellerId, label: presetShopName, sublabel: undefined });
+      options.unshift({ id: presetSellerId, label: presetShopName, sublabel: "" });
     }
 
     return options;

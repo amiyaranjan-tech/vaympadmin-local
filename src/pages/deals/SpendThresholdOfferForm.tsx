@@ -64,10 +64,11 @@ function ScopeCard({
 }
 
 /**
- * "Buy X Amount Get X OFF" — a simple single-offer form over the same
- * tier_amount Offer shape the full Tiered Deals builder uses (see
- * TieredDealsForm.tsx), just always `type: "tier_amount"` and one row
- * instead of several.
+ * "Spend Threshold" — a simple single-offer form over the same tier
+ * Offer shape the full Tiered Deals builder uses (see TieredDealsForm.tsx),
+ * just one row instead of several. Covers a flat-amount OFF (tier_amount)
+ * or percentage OFF (tier_percentage) — free_shipping is only available
+ * via the full Tiered Deals builder.
  */
 export default function SpendThresholdOfferForm() {
   const { id } = useParams();
@@ -113,6 +114,7 @@ export default function SpendThresholdOfferForm() {
   });
 
   const seller = form.watch("seller");
+  const type = form.watch("type");
   const scope = form.watch("scope");
   const products = form.watch("products");
   const shopBanners = form.watch("shopBanners");
@@ -140,7 +142,7 @@ export default function SpendThresholdOfferForm() {
     // presetSellerId may not be on the first fetched page — seed it so the
     // picker shows the shop name immediately instead of a blank placeholder.
     if (presetSellerId && presetShopName && !options.some((o) => o.id === presetSellerId)) {
-      options.unshift({ id: presetSellerId, label: presetShopName, sublabel: undefined });
+      options.unshift({ id: presetSellerId, label: presetShopName, sublabel: "" });
     }
 
     return options;
@@ -277,8 +279,8 @@ export default function SpendThresholdOfferForm() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isEdit ? "Edit spend offer" : "New Buy X Amount Get X OFF offer"}
-        description="A flat-amount discount once a customer's eligible spend at this shop reaches a threshold."
+        title={isEdit ? "Edit spend offer" : "New Spend Threshold offer"}
+        description="A flat-amount or percentage discount once a customer's eligible spend at this shop reaches a threshold."
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -387,27 +389,72 @@ export default function SpendThresholdOfferForm() {
         <Card className="space-y-4 rounded-2xl p-6 shadow-soft">
           <SectionHeading title="Offer Rule" />
 
+          <div className="space-y-2">
+            <Label>Discount Type</Label>
+            <RadioGroup
+              value={type}
+              onValueChange={(v) => form.setValue("type", v as Form["type"], { shouldValidate: true })}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              <Label htmlFor="discount-amount" className="cursor-pointer">
+                <div className="flex items-start gap-2">
+                  <RadioGroupItem value="tier_amount" id="discount-amount" className="mt-4" />
+                  <ScopeCard
+                    label="Flat Amount (₹)"
+                    description="e.g. Spend ₹999, get ₹200 OFF."
+                    selected={type === "tier_amount"}
+                  />
+                </div>
+              </Label>
+
+              <Label htmlFor="discount-percent" className="cursor-pointer">
+                <div className="flex items-start gap-2">
+                  <RadioGroupItem value="tier_percentage" id="discount-percent" className="mt-4" />
+                  <ScopeCard
+                    label="Percentage (%)"
+                    description="e.g. Spend ₹999, get 20% OFF."
+                    selected={type === "tier_percentage"}
+                  />
+                </div>
+              </Label>
+            </RadioGroup>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Minimum Spend (₹)</Label>
               <Input type="number" min={0} {...form.register("minSpend")} />
             </div>
 
-            <div className="space-y-2">
-              <Label>Discount Amount (₹)</Label>
-              <Input type="number" min={0} {...form.register("discountAmount")} />
-              {form.formState.errors.discountAmount && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.discountAmount.message}
-                </p>
-              )}
-            </div>
+            {type === "tier_percentage" ? (
+              <div className="space-y-2">
+                <Label>Discount Percentage (%)</Label>
+                <Input type="number" min={0} max={100} {...form.register("discountPercent")} />
+                {form.formState.errors.discountPercent && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.discountPercent.message}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Discount Amount (₹)</Label>
+                <Input type="number" min={0} {...form.register("discountAmount")} />
+                {form.formState.errors.discountAmount && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.discountAmount.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <p className="rounded-lg bg-muted px-3 py-2 text-sm">
             Preview:{" "}
             <span className="font-medium">
-              Spend ₹{form.watch("minSpend") || 0} → Get ₹{form.watch("discountAmount") || 0} OFF
+              {type === "tier_percentage"
+                ? `Spend ₹${form.watch("minSpend") || 0} → Get ${form.watch("discountPercent") || 0}% OFF`
+                : `Spend ₹${form.watch("minSpend") || 0} → Get ₹${form.watch("discountAmount") || 0} OFF`}
             </span>
           </p>
         </Card>

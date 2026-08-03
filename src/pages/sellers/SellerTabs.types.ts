@@ -14,6 +14,7 @@ export type { Product };
 
 export interface Order {
   _id: string;
+  id: string;
 
   sellerId: string;
 
@@ -36,10 +37,13 @@ export interface Order {
 
 export interface Event {
   _id: string;
+  id: string;
 
   sellerId: string;
 
   title: string;
+  banner: string;
+  location: string;
 
   startDate?: string;
 

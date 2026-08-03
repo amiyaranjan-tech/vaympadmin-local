@@ -24,11 +24,11 @@ const passwordSchema = z.object({
 const bizSchema = z.object({ companyName: z.string().min(2), supportEmail: z.string().email(), commissionRate: z.coerce.number().min(0).max(100), address: z.string().min(3) });
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { admin } = useAuth();
   const { theme, toggle } = useTheme();
   const { settings, updateSettings } = useSettings();
 
-  const pForm = useForm<z.infer<typeof profileSchema>>({ resolver: zodResolver(profileSchema), defaultValues: { name: user?.name ?? "", email: "admin@vaymp.com" } });
+  const pForm = useForm<z.infer<typeof profileSchema>>({ resolver: zodResolver(profileSchema), defaultValues: { name: admin?.username ?? "", email: admin?.email ?? "" } });
   const pwForm = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { current: "", next: "", confirm: "" } });
   const bForm = useForm<z.infer<typeof bizSchema>>({ resolver: zodResolver(bizSchema), defaultValues: { companyName: "Vaymp", supportEmail: "", commissionRate: 10, address: "" } });
 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { admin } = useAuth();
   return (
     <div className="space-y-6">
       <PageHeader title="Profile" description="Your admin account overview." />
@@ -15,10 +15,10 @@ export default function Profile() {
         <div className="h-32 bg-gradient-to-r from-primary via-primary/70 to-secondary" />
         <div className="p-6">
           <div className="-mt-16 flex items-end gap-4">
-            <Avatar className="h-24 w-24 border-4 border-card"><AvatarImage src={user?.avatar} /><AvatarFallback>AD</AvatarFallback></Avatar>
+            <Avatar className="h-24 w-24 border-4 border-card"><AvatarImage src={admin?.avatar} /><AvatarFallback>AD</AvatarFallback></Avatar>
             <div className="pb-2">
-              <div className="text-2xl font-bold">{user?.name}</div>
-              <div className="text-sm text-muted-foreground">@{user?.username} · Marketplace administrator</div>
+              <div className="text-2xl font-bold">{admin?.username}</div>
+              <div className="text-sm text-muted-foreground">{admin?.email} · Marketplace administrator</div>
             </div>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
