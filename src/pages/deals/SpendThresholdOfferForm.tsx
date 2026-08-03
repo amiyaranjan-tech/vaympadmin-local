@@ -21,7 +21,7 @@ import type { BannerPriorityEntry, OfferScope } from "@/types/offer";
 import { ShopProductSelector } from "@/components/deals/ShopProductSelector";
 import { TargetPicker } from "@/pages/marketing/banners/TargetPicker";
 
-import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadOfferBannerImage } from "@/utils/localImageUpload";
 
 import { tierOfferSchema, TierOfferFormValues as Form } from "./offer.schema";
 import { buildTierOfferPayload } from "./offer.mapper";
@@ -182,7 +182,7 @@ export default function SpendThresholdOfferForm() {
   const handleBannerFile = async (file: File) => {
     try {
       setUploadingBanner(true);
-      const uploaded = await uploadImageToCloudinary(file, { folder: "vaymp/offer-banners" });
+      const uploaded = await uploadOfferBannerImage(file);
       form.setValue("bannerImage", uploaded, { shouldValidate: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Banner upload failed");

@@ -22,7 +22,7 @@ import type { BannerPriorityEntry, OfferProductPreview, OfferScope } from "@/typ
 import { ProductMultiPicker } from "@/components/deals/ProductMultiPicker";
 import { TargetPicker } from "@/pages/marketing/banners/TargetPicker";
 
-import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadOfferBannerImage } from "@/utils/localImageUpload";
 
 import { bogoOfferSchema, BogoOfferFormValues as Form } from "./offer.schema";
 import { buildBogoOfferPayload } from "./offer.mapper";
@@ -236,7 +236,7 @@ export default function BogoOfferForm() {
   const handleBannerFile = async (file: File) => {
     try {
       setUploadingBanner(true);
-      const uploaded = await uploadImageToCloudinary(file, { folder: "vaymp/offer-banners" });
+      const uploaded = await uploadOfferBannerImage(file);
       form.setValue("bannerImage", uploaded, { shouldValidate: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Banner upload failed");
