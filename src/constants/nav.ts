@@ -9,7 +9,7 @@ export const NAV = [
   { to: "/sellers", label: "Sellers", icon: Store },
   { to: "/products", label: "Products", icon: Package },
   { to: "/marketing/banners", label: "Banners", icon: Image },
-  { to: "/deals", label: "Deals & Coupons", icon: Tag },
+  { to: "/deals", label: "Deals", icon: Tag },
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/users", label: "Users", icon: Users },
   { to: "/notifications", label: "Notifications", icon: Bell },

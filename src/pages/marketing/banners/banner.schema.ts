@@ -18,7 +18,7 @@ const targetTypeEnum = z.enum([
 export const bannerSchema = z
   .object({
     name: z.string().min(2, "Required"),
-    description: z.string().optional().or(z.literal("")),
+    description: z.string().min(2, "Required"),
 
     type: z.enum([
       "offer",

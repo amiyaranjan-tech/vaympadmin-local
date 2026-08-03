@@ -1,7 +1,8 @@
 // src/pages/sellers/SellerTabs.types.ts
 
-import type { Seller } from "@/types/seller";
+import type { Seller, SellerBrand } from "@/types/seller";
 import type { Product } from "@/types/product";
+import type { Offer } from "@/types/offer";
 
 export type { Product };
 
@@ -25,47 +26,6 @@ export interface Order {
   customerName?: string;
 
   createdAt: string;
-}
-
-/**
- * ==========================================
- * Deal
- * ==========================================
- */
-
-export interface Deal {
-  _id: string;
-
-  sellerId: string;
-
-  title: string;
-
-  discount: number;
-
-  startDate?: string;
-  endDate?: string;
-
-  status?: string;
-}
-
-/**
- * ==========================================
- * Coupon
- * ==========================================
- */
-
-export interface Coupon {
-  _id: string;
-
-  sellerId: string;
-
-  code: string;
-
-  discount: number;
-
-  expiryDate?: string;
-
-  status?: string;
 }
 
 /**
@@ -97,6 +57,8 @@ export interface Event {
 export interface OverviewTabProps {
   seller: Seller;
   shopProducts: Product[];
+  brands: SellerBrand[];
+  onBrandClick: (brand: string) => void;
 }
 
 /**
@@ -108,7 +70,9 @@ export interface OverviewTabProps {
 export interface ProductsTabProps {
   seller: Seller;
   shopProducts: Product[];
-  onDelete: (type: string) => void;
+  onDeleteProduct: (id: string) => void;
+  brandFilter: string | null;
+  onClearBrandFilter: () => void;
 }
 
 /**
@@ -119,19 +83,7 @@ export interface ProductsTabProps {
 
 export interface DealsTabProps {
   seller: Seller;
-  shopDeals: Deal[];
-  onDelete: (type: string) => void;
-}
-
-/**
- * ==========================================
- * Coupons
- * ==========================================
- */
-
-export interface CouponsTabProps {
-  seller: Seller;
-  shopCoupons: Coupon[];
+  shopDeals: Offer[];
   onDelete: (type: string) => void;
 }
 
@@ -189,9 +141,15 @@ export interface SellerTabsProps {
 
   shopProducts: Product[];
   shopOrders: Order[];
-  shopDeals: Deal[];
-  shopCoupons: Coupon[];
+  shopDeals: Offer[];
   shopEvents: Event[];
 
+  brands: SellerBrand[];
+  onBrandClick: (brand: string) => void;
+
+  brandFilter: string | null;
+  onClearBrandFilter: () => void;
+
   onDelete: (type: string) => void;
+  onDeleteProduct: (id: string) => void;
 }

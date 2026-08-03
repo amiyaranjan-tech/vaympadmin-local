@@ -18,6 +18,9 @@ import ProductForm from "@/pages/products/ProductForm";
 import Banners from "@/pages/marketing/banners/Banners";
 import BannerForm from "@/pages/marketing/banners/BannerForm";
 import Deals from "@/pages/deals/Deals";
+import BogoOfferForm from "@/pages/deals/BogoOfferForm";
+import SpendThresholdOfferForm from "@/pages/deals/SpendThresholdOfferForm";
+import TieredDealsForm from "@/pages/deals/TieredDealsForm";
 import Events from "@/pages/events/Events";
 import Users from "@/pages/users/Users";
 import Notifications from "@/pages/notifications/Notifications";
@@ -71,6 +74,19 @@ export default function App() {
               <Route path="/marketing/banners/:id/edit" element={<BannerForm />} />
 
               <Route path="/deals" element={<Deals />} />
+
+              <Route path="/deals/bogo/new" element={<BogoOfferForm />} />
+
+              <Route path="/deals/bogo/:id/edit" element={<BogoOfferForm />} />
+
+              <Route path="/deals/spend-threshold/new" element={<SpendThresholdOfferForm />} />
+
+              <Route
+                path="/deals/spend-threshold/:id/edit"
+                element={<SpendThresholdOfferForm />}
+              />
+
+              <Route path="/deals/tiered/:sellerId" element={<TieredDealsForm />} />
 
               <Route path="/events" element={<Events />} />
 

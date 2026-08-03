@@ -69,6 +69,13 @@ export interface DropdownOptions {
   categories: string[];
   groupsByCategory: Record<string, string[]>;
   subcategoriesByGroup: Record<string, string[]>;
+  // Current taxonomy: Gender -> Category -> Subcategory. categoriesByGender
+  // is keyed by gender ("men"/"women"/"kids"/"unisex"); subcategoriesByCategory
+  // is keyed by "<gender>::<category>". `groups` is the flat, unscoped
+  // merchandising tag list (Product.group) — independent of taxonomy.
+  categoriesByGender: Record<string, string[]>;
+  subcategoriesByCategory: Record<string, string[]>;
+  groups: string[];
   brands: string[];
   colors: string[];
   materials: string[];
@@ -104,6 +111,22 @@ export interface DropdownOptions {
  */
 
 export interface CreateOptionRequest {
+  field: DropdownOptionField;
+  value: string;
+  scope?: string;
+}
+
+/**
+ * ==========================================
+ * Delete Option
+ * ==========================================
+ *
+ * Deletes are keyed by the same (field, scope, value) triple addOption
+ * upserts on — DropdownOption has no client-visible _id in the grouped
+ * GET /options response, so this is the only identity available.
+ */
+
+export interface DeleteOptionRequest {
   field: DropdownOptionField;
   value: string;
   scope?: string;

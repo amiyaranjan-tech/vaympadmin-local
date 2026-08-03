@@ -1,174 +1,297 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deals as dealsMock, coupons as couponsMock, sellers, CATEGORIES_LIST } from "@/data/mock";
+import { EmptyState } from "@/components/common/EmptyState";
+
+import useOffers from "@/hooks/useOffers";
+import useProducts from "@/hooks/useProducts";
+import type { Offer } from "@/types/offer";
+
 import { formatCurrency, formatDate } from "@/utils/format";
-import { Plus, Pencil, Trash2, Zap, Sparkles, Tag as TagIcon } from "lucide-react";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-const dealSchema = z.object({
-  title: z.string().min(2), type: z.string(), discount: z.coerce.number().min(0).max(100),
-  sellerId: z.string(), startDate: z.string(), endDate: z.string(),
-});
-type DealForm = z.infer<typeof dealSchema>;
+// A stable module-level reference — useOffers keys its "initial load"
+// useEffect off this object's identity, so a fresh literal on every render
+// (the mistake this avoids) would re-fire the fetch in an infinite loop.
+const LIST_PARAMS = { limit: 100 };
 
-const couponSchema = z.object({
-  code: z.string().min(3), discount: z.coerce.number().min(0).max(100), maxDiscount: z.coerce.number(),
-  minOrder: z.coerce.number(), sellerId: z.string(), category: z.string(),
-  startDate: z.string(), endDate: z.string(), usageLimit: z.coerce.number(),
-});
-type CouponForm = z.infer<typeof couponSchema>;
+// Mirrors the backend's MASSIVE_DEAL_MIN_DISCOUNT_PERCENT (constants/massiveDeal.js)
+// — display-only. Eligibility itself is decided entirely server-side.
+const MASSIVE_DEAL_MIN_DISCOUNT_PERCENT = 50;
 
+/**
+ * ==========================================
+ * Deals
+ * ==========================================
+ * Backed by real Offer data across the two configurable deal types (see
+ * backend constants/offer.js): BOGO (also covers "Buy 2 Get 2") and
+ * Tiered/Spend Deals. Massive Deals has no Offer/campaign of its own — it's
+ * an automatic classification (Product.discountPercent >= 50, see
+ * constants/massiveDeal.js on the backend) surfaced here purely as a
+ * read-only info panel, not a third configurable deal type.
+ */
 export default function Deals() {
-  const [deals, setDeals] = useState(dealsMock);
-  const [coupons, setCoupons] = useState(couponsMock);
-  const [dealOpen, setDealOpen] = useState(false);
-  const [couponOpen, setCouponOpen] = useState(false);
+  // A single fetch covers both bogo and tier offers (client-split below) —
+  // simpler than the query API supporting a "not this type" filter, and
+  // this is a low-volume admin list, not a paginated storefront feed.
+  const { offers, loading: offersLoading, deleteOffer, updateStatus } = useOffers(LIST_PARAMS);
 
-  const dealForm = useForm<DealForm>({ resolver: zodResolver(dealSchema), defaultValues: { title: "", type: "flat", discount: 10, sellerId: sellers[0].id, startDate: "", endDate: "" } });
-  const couponForm = useForm<CouponForm>({ resolver: zodResolver(couponSchema), defaultValues: { code: "", discount: 10, maxDiscount: 500, minOrder: 999, sellerId: sellers[0].id, category: CATEGORIES_LIST[0], startDate: "", endDate: "", usageLimit: 100 } });
+  // Just needs the count — the products themselves live on the Products
+  // page (View Products deep-links there filtered by discount).
+  const { total: massiveDealProductCount, loading: massiveLoading } = useProducts({
+    minDiscount: MASSIVE_DEAL_MIN_DISCOUNT_PERCENT,
+    limit: 1,
+  });
 
-  const createDeal = (v: DealForm) => {
-    setDeals([{ id: `dl_${Date.now()}`, title: v.title, type: v.type as any, discount: v.discount, category: "deal", sellerId: v.sellerId, startDate: v.startDate, endDate: v.endDate, status: "active", banner: "https://picsum.photos/seed/new/800/300" }, ...deals]);
-    toast.success("Deal created"); setDealOpen(false); dealForm.reset();
+  const bogoOffers = useMemo(() => offers.filter((o) => o.type === "bogo"), [offers]);
+  const tierOffers = useMemo(() => offers.filter((o) => o.type !== "bogo"), [offers]);
+
+  const tierOffersBySeller = useMemo(() => {
+    const groups = new Map<string, { shopName: string; sellerId: string; offers: Offer[] }>();
+
+    for (const offer of tierOffers) {
+      const sellerId = typeof offer.seller === "string" ? offer.seller : offer.seller?._id;
+      const shopName =
+        typeof offer.seller === "string" || !offer.seller ? "Unknown shop" : offer.seller.shopName;
+
+      if (!sellerId) continue;
+
+      if (!groups.has(sellerId)) {
+        groups.set(sellerId, { shopName, sellerId, offers: [] });
+      }
+
+      groups.get(sellerId)!.offers.push(offer);
+    }
+
+    return [...groups.values()];
+  }, [tierOffers]);
+
+  const handleDeleteOffer = (id: string) => {
+    if (!window.confirm("Delete this offer? This can't be undone.")) return;
+    void deleteOffer(id);
   };
-  const createCoupon = (v: CouponForm) => {
-    setCoupons([{ id: `cp_${Date.now()}`, ...v, used: 0, banner: "https://picsum.photos/seed/newc/800/300" }, ...coupons]);
-    toast.success("Coupon created"); setCouponOpen(false); couponForm.reset();
-  };
-
-  const flash = deals.filter((d) => d.category === "flash");
-  const festival = deals.filter((d) => d.category === "festival");
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Deals & Coupons" description="Manage discounts across the marketplace." />
-      <Tabs defaultValue="deals">
+      <PageHeader title="Deals" description="Manage discounts across the marketplace." />
+
+      <Tabs defaultValue="bogo">
         <TabsList className="rounded-xl">
-          <TabsTrigger value="deals">Deals</TabsTrigger>
-          <TabsTrigger value="coupons">Coupons</TabsTrigger>
-          <TabsTrigger value="flash">Flash Sales</TabsTrigger>
-          <TabsTrigger value="festival">Festival Offers</TabsTrigger>
+          <TabsTrigger value="bogo">BOGO Deals</TabsTrigger>
+          <TabsTrigger value="tiered">Spend & Tiered Deals</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="deals" className="mt-4 space-y-4">
+        {/* ========================================== */}
+        {/* BOGO / Buy 2 Get 2 */}
+        {/* ========================================== */}
+        <TabsContent value="bogo" className="mt-4 space-y-4">
           <div className="flex justify-end">
-            <Dialog open={dealOpen} onOpenChange={setDealOpen}>
-              <DialogTrigger asChild><Button className="rounded-xl"><Plus className="mr-2 h-4 w-4" />Create deal</Button></DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>New deal</DialogTitle></DialogHeader>
-                <form onSubmit={dealForm.handleSubmit(createDeal)} className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2"><Label>Title</Label><Input {...dealForm.register("title")} /></div>
-                  <div className="space-y-2"><Label>Type</Label>
-                    <Select value={dealForm.watch("type")} onValueChange={(v) => dealForm.setValue("type", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{["flat", "percentage", "combo", "bogo"].map((x) => <SelectItem key={x} value={x} className="capitalize">{x}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Discount %</Label><Input type="number" {...dealForm.register("discount")} /></div>
-                  <div className="space-y-2 md:col-span-2"><Label>Seller</Label>
-                    <Select value={dealForm.watch("sellerId")} onValueChange={(v) => dealForm.setValue("sellerId", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{sellers.map((s) => <SelectItem key={s.id} value={s.id}>{s.shopName}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Start date</Label><Input type="date" {...dealForm.register("startDate")} /></div>
-                  <div className="space-y-2"><Label>End date</Label><Input type="date" {...dealForm.register("endDate")} /></div>
-                  <DialogFooter className="md:col-span-2"><Button type="submit" className="rounded-xl">Create deal</Button></DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button asChild className="rounded-xl">
+              <Link to="/deals/bogo/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Create BOGO offer
+              </Link>
+            </Button>
           </div>
-          <DealsList items={deals.filter((d) => d.category === "deal")} onDelete={(id) => { setDeals(deals.filter(d => d.id !== id)); toast.success("Deal deleted"); }} />
+
+          {!offersLoading && bogoOffers.length === 0 ? (
+            <EmptyState
+              title="No BOGO offers yet"
+              description="buyQuantity/getQuantity covers both classic BOGO and Buy 2 Get 2 — just different numbers on the same offer."
+            />
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {bogoOffers.map((offer) => {
+                const shopName =
+                  typeof offer.seller === "string" || !offer.seller
+                    ? "Unknown shop"
+                    : offer.seller.shopName;
+                const productCount = Array.isArray(offer.products) ? offer.products.length : 0;
+                const freePoolCount = Array.isArray(offer.freeProductIds)
+                  ? offer.freeProductIds.length
+                  : 0;
+
+                return (
+                  <Card key={offer._id} className="overflow-hidden rounded-2xl p-0 shadow-soft">
+                    {offer.bannerImage?.url && (
+                      <div
+                        className="h-24 bg-cover bg-center bg-muted"
+                        style={{ backgroundImage: `url(${offer.bannerImage.url})` }}
+                      />
+                    )}
+
+                    <div className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-medium">{offer.title}</div>
+                          <div className="mt-0.5 text-xs text-muted-foreground">{shopName}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Buy {offer.buyQuantity} → Get {offer.getQuantity} FREE
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {offer.scope === "entire_shop" ? "Entire Shop" : `Specific Products · ${productCount} product${productCount === 1 ? "" : "s"}`}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Free Pool · {freePoolCount > 0 ? `${freePoolCount} product${freePoolCount === 1 ? "" : "s"}` : "Automatic"}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Offer Priority: {offer.priority}
+                            {offer.bannerPriority != null && ` · Banner Position: #${offer.bannerPriority}`}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {formatDate(offer.startDate)} → {formatDate(offer.endDate)}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={offer.isEnabled}
+                          onCheckedChange={(v) => void updateStatus(offer._id, v)}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        <Button size="sm" variant="outline" className="rounded-lg" asChild>
+                          <Link to={`/deals/bogo/${offer._id}/edit`}>
+                            <Pencil className="mr-1 h-3 w-3" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-lg text-destructive"
+                          onClick={() => handleDeleteOffer(offer._id)}
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="coupons" className="mt-4 space-y-4">
+        {/* ========================================== */}
+        {/* Spend Threshold + Tiered Deals */}
+        {/* ========================================== */}
+        <TabsContent value="tiered" className="mt-4 space-y-4">
           <div className="flex justify-end">
-            <Dialog open={couponOpen} onOpenChange={setCouponOpen}>
-              <DialogTrigger asChild><Button className="rounded-xl"><Plus className="mr-2 h-4 w-4" />Create coupon</Button></DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>New coupon</DialogTitle></DialogHeader>
-                <form onSubmit={couponForm.handleSubmit(createCoupon)} className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2"><Label>Coupon Code</Label><Input className="font-mono uppercase" {...couponForm.register("code")} /></div>
-                  <div className="space-y-2"><Label>Discount %</Label><Input type="number" {...couponForm.register("discount")} /></div>
-                  <div className="space-y-2"><Label>Max Discount</Label><Input type="number" {...couponForm.register("maxDiscount")} /></div>
-                  <div className="space-y-2"><Label>Min Order</Label><Input type="number" {...couponForm.register("minOrder")} /></div>
-                  <div className="space-y-2"><Label>Usage Limit</Label><Input type="number" {...couponForm.register("usageLimit")} /></div>
-                  <div className="space-y-2"><Label>Seller</Label>
-                    <Select value={couponForm.watch("sellerId")} onValueChange={(v) => couponForm.setValue("sellerId", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{sellers.map((s) => <SelectItem key={s.id} value={s.id}>{s.shopName}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Category</Label>
-                    <Select value={couponForm.watch("category")} onValueChange={(v) => couponForm.setValue("category", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{CATEGORIES_LIST.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Start</Label><Input type="date" {...couponForm.register("startDate")} /></div>
-                  <div className="space-y-2"><Label>End</Label><Input type="date" {...couponForm.register("endDate")} /></div>
-                  <DialogFooter className="md:col-span-2"><Button type="submit" className="rounded-xl">Create coupon</Button></DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button asChild className="rounded-xl">
+              <Link to="/deals/spend-threshold/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Buy X Amount Get X OFF
+              </Link>
+            </Button>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {coupons.map((c) => (
-              <Card key={c.id} className="rounded-2xl p-5 shadow-soft">
-                <div className="flex items-start justify-between">
-                  <div><div className="font-mono text-xl font-bold">{c.code}</div><div className="text-xs text-muted-foreground">{c.discount}% off · max {formatCurrency(c.maxDiscount)}</div></div>
-                  <TagIcon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground"><div>Min order<br /><span className="font-medium text-foreground">{formatCurrency(c.minOrder)}</span></div><div>Usage<br /><span className="font-medium text-foreground">{c.used}/{c.usageLimit}</span></div></div>
-                <div className="mt-3 text-xs text-muted-foreground">{formatDate(c.startDate)} → {formatDate(c.endDate)}</div>
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="outline" className="rounded-lg" onClick={() => toast.success("Coupon updated")}><Pencil className="mr-1 h-3 w-3" />Edit</Button>
-                  <Button size="sm" variant="ghost" className="rounded-lg text-destructive" onClick={() => { setCoupons(coupons.filter(x => x.id !== c.id)); toast.success("Coupon deleted"); }}><Trash2 className="mr-1 h-3 w-3" />Delete</Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="flash" className="mt-4"><DealsList items={flash} onDelete={(id) => { setDeals(deals.filter(d => d.id !== id)); toast.success("Deleted"); }} icon={Zap} /></TabsContent>
-        <TabsContent value="festival" className="mt-4"><DealsList items={festival} onDelete={(id) => { setDeals(deals.filter(d => d.id !== id)); toast.success("Deleted"); }} icon={Sparkles} /></TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+          {!offersLoading && tierOffersBySeller.length === 0 ? (
+            <EmptyState
+              title="No tiered or spend offers yet"
+              description="Both a quick spend-threshold offer and a full multi-tier Tiered Deal are the same underlying offer type, scoped to one shop."
+            />
+          ) : (
+            <div className="space-y-3">
+              {tierOffersBySeller.map((group) => (
+                <Card key={group.sellerId} className="rounded-2xl p-4 shadow-soft">
+                  <div className="flex items-start justify-between">
+                    <div className="font-medium">{group.shopName}</div>
+                    <Button size="sm" variant="outline" className="rounded-lg" asChild>
+                      <Link to={`/deals/tiered/${group.sellerId}`}>Manage Tiered Deals</Link>
+                    </Button>
+                  </div>
 
-function DealsList({ items, onDelete, icon: Icon = TagIcon }: { items: any[]; onDelete: (id: string) => void; icon?: any }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {items.map((d) => (
-        <Card key={d.id} className="overflow-hidden rounded-2xl p-0 shadow-soft">
-          <div className="h-28 bg-cover bg-center" style={{ backgroundImage: `url(${d.banner})` }} />
-          <div className="p-4">
-            <div className="flex items-start justify-between">
+                  <div className="mt-3 space-y-2">
+                    {group.offers.map((offer) => {
+                      const productCount = Array.isArray(offer.products) ? offer.products.length : 0;
+
+                      return (
+                        <div
+                          key={offer._id}
+                          className="flex items-center justify-between rounded-xl border p-3"
+                        >
+                          <div>
+                            <div className="text-sm font-medium">{offer.title}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Spend {formatCurrency(offer.minSpend)} →{" "}
+                              {offer.type === "tier_amount" && `${formatCurrency(offer.discountAmount)} off`}
+                              {offer.type === "tier_percentage" && `${offer.discountPercent}% off`}
+                              {offer.type === "free_shipping" && "Free shipping"}
+                              {offer.maxUses != null && ` · ${offer.usedCount}/${offer.maxUses} used`}
+                            </div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {offer.scope === "entire_shop"
+                                ? "Entire Shop"
+                                : `Specific Products · ${productCount} product${productCount === 1 ? "" : "s"}`}
+                              {offer.bannerImage?.url
+                                ? ` · Banner #${offer.bannerPriority}`
+                                : " · No banner"}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={offer.isEnabled}
+                              onCheckedChange={(v) => void updateStatus(offer._id, v)}
+                            />
+                            <Button size="sm" variant="outline" className="rounded-lg" asChild>
+                              <Link to={`/deals/spend-threshold/${offer._id}/edit`}>
+                                <Pencil className="h-3 w-3" />
+                              </Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="rounded-lg text-destructive"
+                              onClick={() => handleDeleteOffer(offer._id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* Massive Deals — automatic classification, not a deal admin */}
+          {/* configures. Shown here purely for visibility/discovery. */}
+          {/* ========================================== */}
+          <Card className="rounded-2xl p-4 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-primary" /><div className="font-medium">{d.title}</div></div>
-                <div className="mt-1 text-xs text-muted-foreground capitalize">{d.type} · {d.discount}% off</div>
+                <div className="font-medium">Massive Deals</div>
+                <div className="mt-1 text-xs font-medium text-primary">
+                  Automatic · {MASSIVE_DEAL_MIN_DISCOUNT_PERCENT}% OFF &amp; Above
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {massiveLoading
+                    ? "Loading..."
+                    : `${massiveDealProductCount} product${massiveDealProductCount === 1 ? "" : "s"} currently qualify`}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  No setup required. Products with {MASSIVE_DEAL_MIN_DISCOUNT_PERCENT}% or more discount
+                  automatically qualify and enter or leave this section as their pricing changes.
+                </div>
               </div>
-              <Badge variant="outline" className="capitalize">{d.status}</Badge>
+
+              <Button size="sm" variant="outline" className="shrink-0 rounded-lg" asChild>
+                <Link to={`/products?discount=${MASSIVE_DEAL_MIN_DISCOUNT_PERCENT}`}>View Products</Link>
+              </Button>
             </div>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="outline" className="rounded-lg" onClick={() => toast.success("Deal updated")}><Pencil className="mr-1 h-3 w-3" />Edit</Button>
-              <Button size="sm" variant="ghost" className="rounded-lg text-destructive" onClick={() => onDelete(d.id)}><Trash2 className="mr-1 h-3 w-3" />Delete</Button>
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

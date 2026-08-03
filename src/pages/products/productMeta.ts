@@ -2,31 +2,22 @@ import type { DealType } from "@/types/product";
 
 // Presentational metadata only — the actual enum values are enforced by
 // the backend (constants/dealType.js). Mirrors bannerMeta.ts's shape.
+// Exactly the 5 supported deal types (see constants/offer.js) — "bogo"
+// here is normally set/cleared automatically by the Offer admin CRUD
+// (routes/offer.routes.js), not hand-picked per product.
 
 export const DEAL_TYPES: DealType[] = [
   "none",
   "bogo",
-  "buy2get1",
-  "buy2get_discount",
-  "tiered_amount",
-  "tiered_percentage",
-  "flash_sale",
-  "limited_offer",
-  "clearance",
-  "combo_offer",
+  "tier_amount",
+  "tier_percentage",
   "free_shipping",
 ];
 
 export const DEAL_TYPE_LABELS: Record<DealType, string> = {
   none: "None",
-  bogo: "Buy One Get One",
-  buy2get1: "Buy Two Get One",
-  buy2get_discount: "Buy Two Get Discount",
-  tiered_amount: "Tiered Amount Off",
-  tiered_percentage: "Tiered Percentage Off",
-  flash_sale: "Flash Sale",
-  limited_offer: "Limited Offer",
-  clearance: "Clearance",
-  combo_offer: "Combo Offer",
+  bogo: "Buy & Get Free (BOGO)",
+  tier_amount: "Tiered — Amount Off",
+  tier_percentage: "Tiered — Percentage Off",
   free_shipping: "Free Shipping",
 };

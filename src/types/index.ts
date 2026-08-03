@@ -107,34 +107,6 @@ export interface User {
   status: "active" | "blocked";
 }
 
-export interface Deal {
-  id: string;
-  title: string;
-  type: "flat" | "percentage" | "combo" | "bogo";
-  discount: number;
-  category: "deal" | "flash" | "festival";
-  sellerId: string;
-  startDate: string;
-  endDate: string;
-  status: "active" | "scheduled" | "expired";
-  banner: string;
-}
-
-export interface Coupon {
-  id: string;
-  code: string;
-  discount: number;
-  maxDiscount: number;
-  minOrder: number;
-  sellerId: string;
-  category: string;
-  startDate: string;
-  endDate: string;
-  usageLimit: number;
-  used: number;
-  banner: string;
-}
-
 export interface Event {
   id: string;
   title: string;

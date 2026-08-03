@@ -195,33 +195,39 @@ export default function useSellers(initialParams?: SellerQueryParams) {
 
   /**
    * ==========================================
-   * Approve Seller
+   * Verify Seller
+   * (pending -> active, atomically, on the backend)
    * ==========================================
    */
 
-  const approveSeller = useCallback(
+  const verifySeller = useCallback(
     async (id: string) => {
       try {
-        await sellerService.approve(id);
+        const seller = await sellerService.verify(id);
 
-        toast.success("Seller approved");
+        toast.success("Seller verified and activated");
 
-        await refresh();
+        setSellers((prev) =>
+          prev.map((item) => (item._id === seller._id ? seller : item)),
+        );
+
+        return seller;
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Failed to approve seller";
+          error instanceof Error ? error.message : "Failed to verify seller";
 
         toast.error(message);
 
         throw error;
       }
     },
-    [refresh],
+    [],
   );
 
   /**
    * ==========================================
    * Suspend Seller
+   * (active -> suspended)
    * ==========================================
    */
 
@@ -236,6 +242,60 @@ export default function useSellers(initialParams?: SellerQueryParams) {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Failed to suspend seller";
+
+        toast.error(message);
+
+        throw error;
+      }
+    },
+    [refresh],
+  );
+
+  /**
+   * ==========================================
+   * Deactivate Seller
+   * (active -> inactive)
+   * ==========================================
+   */
+
+  const deactivateSeller = useCallback(
+    async (id: string) => {
+      try {
+        await sellerService.deactivate(id);
+
+        toast.success("Seller deactivated");
+
+        await refresh();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to deactivate seller";
+
+        toast.error(message);
+
+        throw error;
+      }
+    },
+    [refresh],
+  );
+
+  /**
+   * ==========================================
+   * Reactivate Seller
+   * (suspended | inactive -> active)
+   * ==========================================
+   */
+
+  const reactivateSeller = useCallback(
+    async (id: string) => {
+      try {
+        await sellerService.reactivate(id);
+
+        toast.success("Seller reactivated");
+
+        await refresh();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to reactivate seller";
 
         toast.error(message);
 
@@ -326,44 +386,6 @@ export default function useSellers(initialParams?: SellerQueryParams) {
 
   /**
    * ==========================================
-   * Update Seller Verification
-   * ==========================================
-   */
-
-  const updateVerification = useCallback(
-    async (id: string, isVerified: boolean) => {
-      try {
-        const seller = await sellerService.updateVerification(id, {
-          isVerified,
-        });
-
-        toast.success(
-          isVerified
-            ? "Seller verified successfully"
-            : "Seller verification removed",
-        );
-
-        setSellers((prev) =>
-          prev.map((item) => (item._id === seller._id ? seller : item)),
-        );
-
-        return seller;
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to update verification";
-
-        toast.error(message);
-
-        throw error;
-      }
-    },
-    [],
-  );
-
-  /**
-   * ==========================================
    * Initial Load
    * ==========================================
    */
@@ -435,13 +457,13 @@ useEffect(() => {
     updateSeller,
     deleteSeller,
 
-    approveSeller,
+    verifySeller,
     suspendSeller,
+    deactivateSeller,
+    reactivateSeller,
 
     openShop,
     closeShop,
     setAutoShopStatus,
-
-    updateVerification,
   };
 }

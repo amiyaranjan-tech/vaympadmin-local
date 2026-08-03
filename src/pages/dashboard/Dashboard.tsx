@@ -37,7 +37,6 @@ export default function Dashboard() {
     { label: "Add Seller", icon: Store, to: "/sellers/new" },
     { label: "Add Product", icon: Package, to: "/products/new" },
     { label: "Create Deal", icon: Tag, to: "/deals" },
-    { label: "Create Coupon", icon: Percent, to: "/deals" },
     { label: "Create Event", icon: Plus, to: "/events" },
     { label: "Send Notification", icon: Send, to: "/notifications" },
   ];

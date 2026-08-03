@@ -19,11 +19,26 @@ export interface SellerApiResponse<T> {
  * ==========================================
  */
 
-export type SellerStatus = "pending" | "active" | "suspended";
+export type SellerStatus = "pending" | "active" | "suspended" | "inactive";
 
 export type ShopStatus = "open" | "closed" | "opening_soon" | "closing_soon";
 
 export type ShopStatusMode = "auto" | "manual";
+
+/**
+ * ==========================================
+ * Seller Brands
+ * ==========================================
+ *
+ * GET /sellers/:id/brands — distinct brand names across every
+ * non-deleted product for this seller (any status), with per-brand
+ * product counts.
+ */
+
+export interface SellerBrand {
+  brand: string;
+  count: number;
+}
 
 /**
  * ==========================================
@@ -61,6 +76,22 @@ export interface SellerBank {
 
 /**
  * ==========================================
+ * Lifecycle Audit
+ * ==========================================
+ */
+
+// Populated on GET /sellers/:id only — a plain string id elsewhere
+// (e.g. before population, or if a ref is ever returned unpopulated).
+export interface PopulatedAdminRef {
+  _id: string;
+  username: string;
+  email?: string;
+}
+
+export type AdminRef = PopulatedAdminRef | string | null;
+
+/**
+ * ==========================================
  * Seller
  * ==========================================
  */
@@ -70,6 +101,7 @@ export interface Seller {
 
   shopName: string;
   ownerName: string;
+  shopCategory: string;
 
   email: string;
   phone: string;
@@ -79,6 +111,8 @@ export interface Seller {
 
   gstNumber: string;
   businessRegistration: string;
+
+  description: string;
 
   logo: SellerImage;
   cover: SellerImage;
@@ -105,6 +139,20 @@ export interface Seller {
 
   isVerified: boolean;
   isDeleted: boolean;
+
+  // Lifecycle audit — all optional, only set once the corresponding
+  // action has actually happened.
+  verifiedAt?: string | null;
+  verifiedBy?: AdminRef;
+
+  activatedAt?: string | null;
+  activatedBy?: AdminRef;
+
+  suspendedAt?: string | null;
+  suspendedBy?: AdminRef;
+
+  deactivatedAt?: string | null;
+  deactivatedBy?: AdminRef;
 
   createdAt: string;
   updatedAt: string;
@@ -143,6 +191,7 @@ export interface SellerListResponse {
 export interface CreateSellerRequest {
   shopName: string;
   ownerName: string;
+  shopCategory?: string;
 
   email: string;
   password: string;
@@ -154,6 +203,8 @@ export interface CreateSellerRequest {
 
   gstNumber: string;
   businessRegistration: string;
+
+  description?: string;
 
   logo?: SellerImage;
   cover?: SellerImage;
@@ -172,10 +223,11 @@ export interface CreateSellerRequest {
   refunds?: number;
   products?: number;
 
-  status?: SellerStatus;
+  // status and isVerified are not accepted here — a seller is always
+  // created pending/unverified. See SellerStatusRequest /
+  // VerifySellerRequest for the dedicated lifecycle actions.
   shopStatus?: ShopStatus;
 
-  isVerified?: boolean;
   isDeleted?: boolean;
 }
 
@@ -188,6 +240,7 @@ export interface CreateSellerRequest {
 export interface UpdateSellerRequest {
   shopName?: string;
   ownerName?: string;
+  shopCategory?: string;
 
   email?: string;
   password?: string;
@@ -199,6 +252,8 @@ export interface UpdateSellerRequest {
 
   gstNumber?: string;
   businessRegistration?: string;
+
+  description?: string;
 
   logo?: SellerImage;
   cover?: SellerImage;
@@ -217,10 +272,10 @@ export interface UpdateSellerRequest {
   refunds?: number;
   products?: number;
 
-  status?: SellerStatus;
+  // status and isVerified are not accepted here — see
+  // SellerStatusRequest / VerifySellerRequest below.
   shopStatus?: ShopStatus;
 
-  isVerified?: boolean;
   isDeleted?: boolean;
 }
 

@@ -3,8 +3,6 @@ import type {
   Product,
   Order,
   User,
-  Deal,
-  Coupon,
   Event,
   Notification,
   Refund,
@@ -463,34 +461,6 @@ export const orders: Order[] = Array.from({ length: 50 }, (_, i) => {
     ],
   };
 });
-
-export const deals: Deal[] = Array.from({ length: 30 }, (_, i) => ({
-  id: `dl_${i + 1}`,
-  title: `${pick(["Weekend", "Monsoon", "Festive", "Flash", "Studio"], i)} ${pick(["Sale", "Drop", "Blowout", "Special"], i)} ${i + 1}`,
-  type: (["flat", "percentage", "combo", "bogo"] as const)[i % 4],
-  discount: 10 + rand(i, 50),
-  category: (["deal", "flash", "festival"] as const)[i % 3],
-  sellerId: sellers[i % sellers.length].id,
-  startDate: daysAgo(-rand(i, 5)),
-  endDate: daysAgo(-rand(i + 1, 30) - 5),
-  status: (["active", "scheduled", "expired"] as const)[i % 3],
-  banner: `https://picsum.photos/seed/deal${i}/800/300`,
-}));
-
-export const coupons: Coupon[] = Array.from({ length: 20 }, (_, i) => ({
-  id: `cp_${i + 1}`,
-  code: `VAYMP${(i + 10).toString(36).toUpperCase()}${100 + i}`,
-  discount: 5 + rand(i, 40),
-  maxDiscount: 200 + rand(i, 800),
-  minOrder: 500 + rand(i, 2000),
-  sellerId: sellers[i % sellers.length].id,
-  category: pick(CATEGORIES, i),
-  startDate: daysAgo(rand(i, 10)),
-  endDate: daysAgo(-rand(i, 30) - 5),
-  usageLimit: 100 + rand(i, 900),
-  used: rand(i, 100),
-  banner: `https://picsum.photos/seed/cp${i}/800/300`,
-}));
 
 export const events: Event[] = Array.from({ length: 15 }, (_, i) => ({
   id: `ev_${i + 1}`,

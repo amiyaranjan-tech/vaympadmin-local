@@ -1,16 +1,19 @@
 // src/pages/sellers/OverviewTab.tsx
 
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 
 import { formatCurrency, formatDate } from "@/utils/format";
+import { cn } from "@/lib/utils";
 
 import type { OverviewTabProps } from "./SellerTabs.types";
 
 export default function OverviewTab({
   seller,
   shopProducts,
+  brands,
+  onBrandClick,
 }: OverviewTabProps) {
   return (
     <TabsContent value="overview" className="mt-4">
@@ -171,6 +174,34 @@ export default function OverviewTab({
               <dd className="mt-1 font-mono">{seller.bank?.ifsc || "-"}</dd>
             </div>
           </dl>
+        </Card>
+
+        {/* Brands */}
+        <Card className="rounded-2xl p-6 shadow-soft md:col-span-2">
+          <div className="mb-4 text-base font-semibold">Brands</div>
+
+          {brands.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No products yet — brands will appear here once this seller
+              lists products.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {brands.map(({ brand, count }) => (
+                <button
+                  key={brand}
+                  type="button"
+                  onClick={() => onBrandClick(brand)}
+                  className={cn(
+                    badgeVariants({ variant: "outline" }),
+                    "cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  {brand} ({count})
+                </button>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </TabsContent>

@@ -5,7 +5,6 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OverviewTab from "./OverviewTab";
 import ProductsTab from "./ProductsTab";
 import DealsTab from "./DealsTab";
-import CouponsTab from "./CouponsTab";
 import EventsTab from "./EventsTab";
 import RevenueTab from "./RevenueTab";
 import OrdersTab from "./OrdersTab";
@@ -18,9 +17,13 @@ export default function SellerTabs({
   shopProducts,
   shopOrders,
   shopDeals,
-  shopCoupons,
   shopEvents,
+  brands,
+  onBrandClick,
+  brandFilter,
+  onClearBrandFilter,
   onDelete,
+  onDeleteProduct,
 }: SellerTabsProps) {
   return (
     <>
@@ -35,8 +38,6 @@ export default function SellerTabs({
 
         <TabsTrigger value="deals">Deals</TabsTrigger>
 
-        <TabsTrigger value="coupons">Coupons</TabsTrigger>
-
         <TabsTrigger value="events">Events</TabsTrigger>
 
         <TabsTrigger value="revenue">Revenue</TabsTrigger>
@@ -50,21 +51,22 @@ export default function SellerTabs({
           Tab Contents
       ========================================== */}
 
-      <OverviewTab seller={seller} shopProducts={shopProducts} />
+      <OverviewTab
+        seller={seller}
+        shopProducts={shopProducts}
+        brands={brands}
+        onBrandClick={onBrandClick}
+      />
 
       <ProductsTab
         seller={seller}
         shopProducts={shopProducts}
-        onDelete={onDelete}
+        onDeleteProduct={onDeleteProduct}
+        brandFilter={brandFilter}
+        onClearBrandFilter={onClearBrandFilter}
       />
 
       <DealsTab seller={seller} shopDeals={shopDeals} onDelete={onDelete} />
-
-      <CouponsTab
-        seller={seller}
-        shopCoupons={shopCoupons}
-        onDelete={onDelete}
-      />
 
       <EventsTab seller={seller} shopEvents={shopEvents} onDelete={onDelete} />
 

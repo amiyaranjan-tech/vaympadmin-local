@@ -4,6 +4,7 @@ import type {
   CreateSellerRequest,
   Seller,
   SellerApiResponse,
+  SellerBrand,
   SellerListResponse,
   SellerQueryParams,
   SellerStatus,
@@ -47,6 +48,18 @@ class SellerService {
 
   async getById(id: string): Promise<Seller> {
     const response = await sellerApi.getById(id);
+
+    return this.handleResponse(response);
+  }
+
+  /**
+   * ==========================================
+   * Get Seller Brands
+   * ==========================================
+   */
+
+  async getBrands(id: string): Promise<SellerBrand[]> {
+    const response = await sellerApi.getBrands(id);
 
     return this.handleResponse(response);
   }
@@ -133,22 +146,35 @@ class SellerService {
 
   /**
    * ==========================================
-   * Approve Seller
-   * ==========================================
-   */
-
-  approve(id: string): Promise<Seller> {
-    return this.updateStatus(id, "active");
-  }
-
-  /**
-   * ==========================================
    * Suspend Seller
+   * (active -> suspended)
    * ==========================================
    */
 
   suspend(id: string): Promise<Seller> {
     return this.updateStatus(id, "suspended");
+  }
+
+  /**
+   * ==========================================
+   * Deactivate Seller
+   * (active -> inactive)
+   * ==========================================
+   */
+
+  deactivate(id: string): Promise<Seller> {
+    return this.updateStatus(id, "inactive");
+  }
+
+  /**
+   * ==========================================
+   * Reactivate Seller
+   * (suspended | inactive -> active)
+   * ==========================================
+   */
+
+  reactivate(id: string): Promise<Seller> {
+    return this.updateStatus(id, "active");
   }
 
   /**
@@ -192,24 +218,13 @@ class SellerService {
   /**
    * ==========================================
    * Verify Seller
+   * (pending -> active, atomically, on the backend)
    * ==========================================
    */
 
   verify(id: string): Promise<Seller> {
     return this.updateVerification(id, {
       isVerified: true,
-    });
-  }
-
-  /**
-   * ==========================================
-   * Remove Verification
-   * ==========================================
-   */
-
-  unverify(id: string): Promise<Seller> {
-    return this.updateVerification(id, {
-      isVerified: false,
     });
   }
 
@@ -258,6 +273,18 @@ class SellerService {
   getSuspended(): Promise<SellerListResponse> {
     return this.getAll({
       status: "suspended",
+    });
+  }
+
+  /**
+   * ==========================================
+   * Get Inactive Sellers
+   * ==========================================
+   */
+
+  getInactive(): Promise<SellerListResponse> {
+    return this.getAll({
+      status: "inactive",
     });
   }
 }

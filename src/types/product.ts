@@ -47,19 +47,11 @@ export type ProductDateAddedFilter =
 
 // Mirrors the backend's constants/dealType.js — a merchandising label
 // shown on the product's deal badge, independent of the isFeatured/
-// isTrending/... flags below. "none" means no deal badge at all.
-export type DealType =
-  | "none"
-  | "bogo"
-  | "buy2get1"
-  | "buy2get_discount"
-  | "tiered_amount"
-  | "tiered_percentage"
-  | "flash_sale"
-  | "limited_offer"
-  | "clearance"
-  | "combo_offer"
-  | "free_shipping";
+// isTrending/... flags below. "none" means no deal badge at all. For
+// "bogo", this is kept in sync automatically by the Offer admin CRUD
+// (see offer.service.js#syncBogoProductDealTypes) — it isn't meant to be
+// hand-edited here once a matching bogo Offer exists.
+export type DealType = "none" | "bogo" | "tier_amount" | "tier_percentage" | "free_shipping";
 
 /**
  * ==========================================
@@ -114,6 +106,12 @@ export interface Product {
   sellingPrice: number;
   discountPercent: number;
   finalPrice: number;
+
+  // Automatic classification, not admin-set — derived server-side from
+  // discountPercent >= the backend's MASSIVE_DEAL_MIN_DISCOUNT_PERCENT
+  // constant (see constants/massiveDeal.js on the backend). Never edit
+  // this directly; it follows discountPercent on its own.
+  isMassiveDeal: boolean;
 
   variants: ProductVariant[];
   totalStock: number;

@@ -35,8 +35,6 @@ function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
       .map((tag) => tag.trim())
       .filter(Boolean),
 
-    productCollection: values.productCollection?.trim() ?? "",
-
     sellingPrice: values.sellingPrice,
 
     costPrice: values.costPrice,

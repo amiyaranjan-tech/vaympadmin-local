@@ -4,12 +4,19 @@ import { toast } from "sonner";
 import optionService from "@/services/option.service";
 import { sortSizes } from "@/utils/sortSizes";
 
-import type { CreateOptionRequest, DropdownOptions } from "@/types/option";
+import type {
+  CreateOptionRequest,
+  DeleteOptionRequest,
+  DropdownOptions,
+} from "@/types/option";
 
 const EMPTY: DropdownOptions = {
   categories: [],
   groupsByCategory: {},
   subcategoriesByGroup: {},
+  categoriesByGender: {},
+  subcategoriesByCategory: {},
+  groups: [],
   brands: [],
   colors: [],
   materials: [],
@@ -47,6 +54,9 @@ const insertSize = (list: string[], value: string) =>
   list.some((v) => v.toLowerCase() === value.toLowerCase())
     ? list
     : sortSizes([...list, value]);
+
+const removeFromList = (list: string[], value: string) =>
+  list.filter((v) => v.toLowerCase() !== value.toLowerCase());
 
 export default function useDropdownOptions() {
   const [options, setOptions] = useState<DropdownOptions>(EMPTY);
@@ -100,20 +110,38 @@ export default function useDropdownOptions() {
           case "category":
             return { ...prev, categories: insertSorted(prev.categories, trimmed) };
           case "group":
+            // New merchandising groups are unscoped (scope "") — flat list.
+            // Old category-scoped taxonomy groups (scope set) also update
+            // the legacy map, for whatever still reads it.
             return {
               ...prev,
-              groupsByCategory: {
-                ...prev.groupsByCategory,
-                [scope]: insertSorted(prev.groupsByCategory[scope] ?? [], trimmed),
-              },
+              groups: insertSorted(prev.groups, trimmed),
+              ...(scope
+                ? {
+                    groupsByCategory: {
+                      ...prev.groupsByCategory,
+                      [scope]: insertSorted(prev.groupsByCategory[scope] ?? [], trimmed),
+                    },
+                  }
+                : {}),
             };
           case "subcategory":
+            // scope is "<gender>::<category>" for the current taxonomy —
+            // also mirrored into the legacy subcategoriesByGroup map
+            // (same key shape doesn't collide, just unused by new code).
             return {
               ...prev,
               subcategoriesByGroup: {
                 ...prev.subcategoriesByGroup,
                 [scope]: insertSorted(
                   prev.subcategoriesByGroup[scope] ?? [],
+                  trimmed,
+                ),
+              },
+              subcategoriesByCategory: {
+                ...prev.subcategoriesByCategory,
+                [scope]: insertSorted(
+                  prev.subcategoriesByCategory[scope] ?? [],
                   trimmed,
                 ),
               },
@@ -203,5 +231,130 @@ export default function useDropdownOptions() {
     [],
   );
 
-  return { options, loading, addOption };
+  /**
+   * ==========================================
+   * Remove Option
+   * ==========================================
+   *
+   * Unlike addOption, this awaits the backend first and only updates
+   * local state on success — a delete can legitimately be rejected
+   * (409, still in use by live products/sellers), and removing it from
+   * the picker optimistically would show it as gone and then have it
+   * reappear, which is worse than just waiting for confirmation.
+   */
+
+  const removeOption = useCallback(
+    async ({ field, value, scope = "" }: DeleteOptionRequest) => {
+      const trimmed = value.trim();
+
+      if (!trimmed) return;
+
+      try {
+        await optionService.delete({ field, value: trimmed, scope });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to delete option";
+
+        toast.error(message);
+        throw error;
+      }
+
+      setOptions((prev) => {
+        switch (field) {
+          case "category":
+            return { ...prev, categories: removeFromList(prev.categories, trimmed) };
+          case "group":
+            return {
+              ...prev,
+              groupsByCategory: {
+                ...prev.groupsByCategory,
+                [scope]: removeFromList(prev.groupsByCategory[scope] ?? [], trimmed),
+              },
+            };
+          case "subcategory":
+            return {
+              ...prev,
+              subcategoriesByGroup: {
+                ...prev.subcategoriesByGroup,
+                [scope]: removeFromList(prev.subcategoriesByGroup[scope] ?? [], trimmed),
+              },
+            };
+          case "attributeKey":
+            return {
+              ...prev,
+              attributeTemplatesBySubcategory: {
+                ...prev.attributeTemplatesBySubcategory,
+                [scope]: removeFromList(
+                  prev.attributeTemplatesBySubcategory[scope] ?? [],
+                  trimmed,
+                ),
+              },
+            };
+          case "brand":
+            return { ...prev, brands: removeFromList(prev.brands, trimmed) };
+          case "color":
+            return { ...prev, colors: removeFromList(prev.colors, trimmed) };
+          case "material":
+            return { ...prev, materials: removeFromList(prev.materials, trimmed) };
+          case "season":
+            return { ...prev, seasons: removeFromList(prev.seasons, trimmed) };
+          case "occasion":
+            return { ...prev, occasions: removeFromList(prev.occasions, trimmed) };
+          case "pattern":
+            return { ...prev, patterns: removeFromList(prev.patterns, trimmed) };
+          case "tag":
+            return { ...prev, tags: removeFromList(prev.tags, trimmed) };
+          case "city":
+            return { ...prev, cities: removeFromList(prev.cities, trimmed) };
+          case "size":
+            return {
+              ...prev,
+              sizesBySubcategory: {
+                ...prev.sizesBySubcategory,
+                [scope]: removeFromList(prev.sizesBySubcategory[scope] ?? [], trimmed),
+              },
+            };
+          case "sleeveType":
+            return { ...prev, sleeveTypes: removeFromList(prev.sleeveTypes, trimmed) };
+          case "neckType":
+            return { ...prev, neckTypes: removeFromList(prev.neckTypes, trimmed) };
+          case "fit":
+            return { ...prev, fits: removeFromList(prev.fits, trimmed) };
+          case "closureType":
+            return { ...prev, closureTypes: removeFromList(prev.closureTypes, trimmed) };
+          case "length":
+            return { ...prev, lengths: removeFromList(prev.lengths, trimmed) };
+          case "rise":
+            return { ...prev, rises: removeFromList(prev.rises, trimmed) };
+          case "heelType":
+            return { ...prev, heelTypes: removeFromList(prev.heelTypes, trimmed) };
+          case "sole":
+            return { ...prev, soleTypes: removeFromList(prev.soleTypes, trimmed) };
+          case "styleType":
+            return { ...prev, styleTypes: removeFromList(prev.styleTypes, trimmed) };
+          case "sareeType":
+            return { ...prev, sareeTypes: removeFromList(prev.sareeTypes, trimmed) };
+          case "lehengaType":
+            return { ...prev, lehengaTypes: removeFromList(prev.lehengaTypes, trimmed) };
+          case "kurtaType":
+            return { ...prev, kurtaTypes: removeFromList(prev.kurtaTypes, trimmed) };
+          case "suitType":
+            return { ...prev, suitTypes: removeFromList(prev.suitTypes, trimmed) };
+          case "sherwaniType":
+            return { ...prev, sherwaniTypes: removeFromList(prev.sherwaniTypes, trimmed) };
+          case "dressType":
+            return { ...prev, dressTypes: removeFromList(prev.dressTypes, trimmed) };
+          case "productCollection":
+            return { ...prev, productCollections: removeFromList(prev.productCollections, trimmed) };
+          default:
+            return prev;
+        }
+      });
+
+      toast.success(`"${trimmed}" deleted`);
+    },
+    [],
+  );
+
+  return { options, loading, addOption, removeOption };
 }

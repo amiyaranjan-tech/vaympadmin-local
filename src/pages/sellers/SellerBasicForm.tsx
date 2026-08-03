@@ -52,6 +52,21 @@ export default function SellerBasicForm({ form, existing }: Props) {
         </div>
 
         <div className="space-y-2">
+          <Label>Shop Category</Label>
+
+          <Input
+            placeholder="e.g. Clothing & Fashion, Footwear, Accessories"
+            {...form.register("shopCategory")}
+          />
+
+          {form.formState.errors.shopCategory && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.shopCategory.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
           <Label>Email</Label>
 
           <Input type="email" {...form.register("email")} />
@@ -185,6 +200,22 @@ export default function SellerBasicForm({ form, existing }: Props) {
           {form.formState.errors.address && (
             <p className="text-xs text-destructive">
               {form.formState.errors.address.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <Label>Shop Description</Label>
+
+          <Textarea
+            rows={4}
+            placeholder="Shown to customers on the shop's About section"
+            {...form.register("description")}
+          />
+
+          {form.formState.errors.description && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.description.message}
             </p>
           )}
         </div>

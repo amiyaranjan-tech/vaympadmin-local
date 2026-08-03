@@ -132,12 +132,11 @@ export default function ProductForm() {
       name: "",
       description: "",
       brand: "",
-      category: "Clothes",
-      group: [],
+      category: "",
       subcategory: "",
       gender: "unisex",
       tags: "",
-      productCollection: "",
+      group: [],
       seller: "",
       sellingPrice: 999,
       costPrice: 500,
@@ -183,11 +182,10 @@ export default function ProductForm() {
           description: product.description,
           brand: product.brand,
           category: product.category,
-          group: product.group,
           subcategory: product.subcategory,
           gender: product.gender,
           tags: product.tags.join(", "),
-          productCollection: product.productCollection,
+          group: product.group,
           seller: product.seller ?? "",
           sellingPrice: product.sellingPrice,
           costPrice: product.costPrice,
@@ -228,27 +226,25 @@ export default function ProductForm() {
     Math.floor(sellingPrice * (1 - discountPercent / 100)),
   );
   const variants = form.watch("variants");
+  const gender = form.watch("gender");
   const category = form.watch("category");
   const group = form.watch("group");
   const subcategory = form.watch("subcategory");
   const attributes = form.watch("attributes") ?? {};
   const dealType = form.watch("dealType");
 
-  const groupOptions = options.groupsByCategory[category] ?? [];
-  // Union of subcategories valid for any of the product's selected
-  // groups — subcategory only needs to fit at least one group, not all.
-  const subcategoryOptions = Array.from(
-    new Set(
-      group.flatMap((g) => options.subcategoriesByGroup[`${category}::${g}`] ?? []),
-    ),
-  );
+  // Taxonomy — Gender -> Category -> Subcategory. Category is a fixed,
+  // curated list per gender (not admin-creatable); Subcategory depends on
+  // both Gender and Category together.
+  const categoryOptions = options.categoriesByGender[gender] ?? [];
+  const subcategoryOptions = options.subcategoriesByCategory[`${gender}::${category}`] ?? [];
   const sizeOptions =
     options.sizesBySubcategory[subcategory ?? ""] ??
     sortSizes(Array.from(new Set(Object.values(options.sizesBySubcategory).flat())));
   const visibleAttributeKeys = options.attributeTemplatesBySubcategory[subcategory ?? ""] ?? [];
 
   const stepFields: Record<number, (keyof Form)[]> = {
-    0: ["name", "description", "brand", "category", "group", "subcategory", "gender", "seller"],
+    0: ["name", "description", "gender", "seller", "brand", "category", "subcategory"],
     1: ["sellingPrice", "costPrice", "discountPercent"],
     2: ["variants"],
     3: ["color", "season"],
@@ -383,75 +379,14 @@ export default function ProductForm() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Brand</Label>
-                    <Combobox
-                      value={form.watch("brand")}
-                      onChange={(v) => form.setValue("brand", v)}
-                      onCreate={(v) => addOption({ field: "brand", value: v })}
-                      options={options.brands}
-                      placeholder="Select or add a brand"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Combobox
-                      value={form.watch("category")}
-                      onChange={(v) => {
-                        form.setValue("category", v);
-                        form.setValue("group", []);
-                        form.setValue("subcategory", "");
-                      }}
-                      onCreate={(v) => addOption({ field: "category", value: v })}
-                      options={options.categories}
-                      placeholder="Select or add a category"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Group</Label>
-                    <MultiCombobox
-                      values={group}
-                      onChange={(vals) => {
-                        form.setValue("group", vals);
-                        form.setValue("subcategory", "");
-                      }}
-                      onCreate={(v) => addOption({ field: "group", value: v, scope: category })}
-                      options={groupOptions}
-                      placeholder="Select or add group(s)"
-                    />
-                    {form.formState.errors.group && (
-                      <p className="text-xs text-destructive">
-                        {form.formState.errors.group.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Subcategory</Label>
-                    <Combobox
-                      value={form.watch("subcategory") ?? ""}
-                      onChange={(v) => form.setValue("subcategory", v)}
-                      onCreate={(v) =>
-                        addOption({
-                          field: "subcategory",
-                          value: v,
-                          scope: `${category}::${group}`,
-                        })
-                      }
-                      options={subcategoryOptions}
-                      placeholder="Select or add a subcategory"
-                    />
-                    {form.formState.errors.subcategory && (
-                      <p className="text-xs text-destructive">
-                        {form.formState.errors.subcategory.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
                     <Label>Gender</Label>
                     <Select
                       value={form.watch("gender")}
-                      onValueChange={(v) =>
-                        form.setValue("gender", v as Form["gender"])
-                      }
+                      onValueChange={(v) => {
+                        form.setValue("gender", v as Form["gender"]);
+                        form.setValue("category", "");
+                        form.setValue("subcategory", "");
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -466,34 +401,6 @@ export default function ProductForm() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Tags</Label>
-                    <MultiCombobox
-                      values={form
-                        .watch("tags")
-                        .split(",")
-                        .map((t) => t.trim())
-                        .filter(Boolean)}
-                      onChange={(vals) =>
-                        form.setValue("tags", vals.join(", "))
-                      }
-                      onCreate={(v) => addOption({ field: "tag", value: v })}
-                      options={options.tags}
-                      placeholder="Select or add tags"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Collection</Label>
-                    <Combobox
-                      value={form.watch("productCollection") ?? ""}
-                      onChange={(v) => form.setValue("productCollection", v)}
-                      onCreate={(v) =>
-                        addOption({ field: "productCollection", value: v })
-                      }
-                      options={options.productCollections}
-                      placeholder="Select or add a collection"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
                     <Label>Shop</Label>
                     <Select
                       value={form.watch("seller")}
@@ -515,6 +422,83 @@ export default function ProductForm() {
                         {form.formState.errors.seller.message}
                       </p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Brand</Label>
+                    <Combobox
+                      value={form.watch("brand")}
+                      onChange={(v) => form.setValue("brand", v)}
+                      onCreate={(v) => addOption({ field: "brand", value: v })}
+                      options={options.brands}
+                      placeholder="Select or add a brand"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Combobox
+                      value={form.watch("category")}
+                      onChange={(v) => {
+                        form.setValue("category", v);
+                        form.setValue("subcategory", "");
+                      }}
+                      allowCreate={false}
+                      options={categoryOptions}
+                      placeholder="Select a category"
+                      emptyText="No matching category"
+                    />
+                    {form.formState.errors.category && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.category.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Subcategory</Label>
+                    <Combobox
+                      value={form.watch("subcategory") ?? ""}
+                      onChange={(v) => form.setValue("subcategory", v)}
+                      onCreate={(v) =>
+                        addOption({
+                          field: "subcategory",
+                          value: v,
+                          scope: `${gender}::${category}`,
+                        })
+                      }
+                      options={subcategoryOptions}
+                      placeholder="Select or add a subcategory"
+                      emptyText="Select a category first"
+                    />
+                    {form.formState.errors.subcategory && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.subcategory.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tags</Label>
+                    <MultiCombobox
+                      values={form
+                        .watch("tags")
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean)}
+                      onChange={(vals) =>
+                        form.setValue("tags", vals.join(", "))
+                      }
+                      onCreate={(v) => addOption({ field: "tag", value: v })}
+                      options={options.tags}
+                      placeholder="Select or add tags"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Collections (Optional)</Label>
+                    <MultiCombobox
+                      values={group}
+                      onChange={(vals) => form.setValue("group", vals)}
+                      onCreate={(v) => addOption({ field: "group", value: v })}
+                      options={options.groups}
+                      placeholder="Select or add collection(s)"
+                    />
                   </div>
                 </div>
               )}

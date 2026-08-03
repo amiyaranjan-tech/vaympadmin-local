@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,8 @@ interface MultiComboboxProps {
   allowCreate?: boolean;
   /** Called once, only when a genuinely new value is added (not on toggling an existing option). */
   onCreate?: (value: string) => void;
+  /** If provided, shows a delete affordance on each option row. */
+  onDelete?: (value: string) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -42,6 +44,7 @@ export function MultiCombobox({
   searchPlaceholder = "Search or type to add…",
   allowCreate = true,
   onCreate,
+  onDelete,
   className,
   disabled,
 }: MultiComboboxProps) {
@@ -153,6 +156,7 @@ export function MultiCombobox({
                   key={option}
                   value={option}
                   onSelect={() => toggle(option)}
+                  className="group/item"
                 >
                   <Check
                     className={cn(
@@ -160,7 +164,23 @@ export function MultiCombobox({
                       values.includes(option) ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  {option}
+                  <span className="flex-1 truncate">{option}</span>
+                  {onDelete && (
+                    <span
+                      role="button"
+                      tabIndex={-1}
+                      aria-label={`Delete "${option}"`}
+                      className="ml-2 shrink-0 rounded-md p-1 opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover/item:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete "${option}"? This can't be undone.`)) {
+                          onDelete(option);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </span>
+                  )}
                 </CommandItem>
               ))}
               {allowCreate && normalizedQuery && !exactMatch && (

@@ -110,12 +110,14 @@ export function excelRowToPayload(
   const name = getCell(row, "Name");
   const brand = getCell(row, "Brand");
   const category = getCell(row, "Category");
-  const group = getCell(row, "Group");
+  // Comma-separated, same convention as Tags — a product can belong to
+  // multiple groups (e.g. "Western Wear, Ethnic Wear").
+  const group = parseTags(getCell(row, "Group"));
   const subcategory = getCell(row, "Subcategory");
   const costPrice = getCell(row, "CostPrice");
   const sellingPrice = getCell(row, "SellingPrice");
 
-  if (!name || !brand || !category || !group || !subcategory || !costPrice || !sellingPrice) {
+  if (!name || !brand || !category || group.length === 0 || !subcategory || !costPrice || !sellingPrice) {
     return {
       row: rowIndex,
       error:
@@ -187,7 +189,7 @@ export function productToExcelRow(product: Product, sellers: Seller[]) {
     Description: product.description,
     Brand: product.brand,
     Category: product.category,
-    Group: product.group,
+    Group: product.group.join(", "),
     Subcategory: product.subcategory,
     Collection: product.productCollection,
     Gender: product.gender,

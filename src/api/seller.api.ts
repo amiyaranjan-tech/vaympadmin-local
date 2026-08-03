@@ -4,6 +4,7 @@ import type {
   CreateSellerRequest,
   Seller,
   SellerApiResponse,
+  SellerBrand,
   SellerListResponse,
   SellerQueryParams,
   SellerStatusRequest,
@@ -41,6 +42,19 @@ const sellerApi = {
    */
   getById: async (id: string): Promise<SellerApiResponse<Seller>> => {
     const response = await api.get<SellerApiResponse<Seller>>(`/sellers/${id}`);
+
+    return response.data;
+  },
+
+  /**
+   * ==========================================
+   * Get Seller Brands
+   * ==========================================
+   */
+  getBrands: async (id: string): Promise<SellerApiResponse<SellerBrand[]>> => {
+    const response = await api.get<SellerApiResponse<SellerBrand[]>>(
+      `/sellers/${id}/brands`,
+    );
 
     return response.data;
   },

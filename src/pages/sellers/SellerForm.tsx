@@ -16,9 +16,6 @@ import { Button } from "@/components/ui/button";
 import SellerBasicForm from "./SellerBasicForm";
 import { SellerFormValues, sellerSchema } from "./seller.schema";
 import { createSellerPayload, updateSellerPayload } from "./seller.mapper";
-import SellerVerificationCard from "./SellerVerificationCard";
-
-
 
 export default function SellerForm() {
   const navigate = useNavigate();
@@ -43,6 +40,7 @@ export default function SellerForm() {
     defaultValues: {
       shopName: "",
       ownerName: "",
+      shopCategory: "",
       email: "",
       password: "",
 
@@ -54,6 +52,8 @@ export default function SellerForm() {
       gstNumber: "",
       businessRegistration: "",
 
+      description: "",
+
       workingDays: "Mon,Tue,Wed,Thu,Fri",
 
       workingOpen: "09:00",
@@ -64,8 +64,6 @@ export default function SellerForm() {
       ifsc: "",
 
       commissionRate: "",
-
-      isVerified: false,
     },
   });
 
@@ -91,6 +89,8 @@ export default function SellerForm() {
 
           ownerName: seller.ownerName,
 
+          shopCategory: seller.shopCategory ?? "",
+
           email: seller.email,
 
           password: "",
@@ -104,6 +104,8 @@ export default function SellerForm() {
           gstNumber: seller.gstNumber,
 
           businessRegistration: seller.businessRegistration,
+
+          description: seller.description ?? "",
 
           workingDays: seller.workingDays.join(","),
 
@@ -119,8 +121,6 @@ export default function SellerForm() {
 
           commissionRate:
             seller.commissionRate === null ? "" : String(seller.commissionRate),
-
-          isVerified: seller.isVerified,
         });
       } catch (error) {
         toast.error(
@@ -174,7 +174,11 @@ const onSubmit = async (values: SellerFormValues) => {
     <div className="space-y-6">
       <PageHeader
         title={isEdit ? "Edit Seller" : "Add Seller"}
-        description="Manage seller information."
+        description={
+          isEdit
+            ? "Manage seller information. Verification and status are managed from the seller list or details page."
+            : "Manage seller information. The seller starts as pending and must be verified before it goes live."
+        }
       />
 
       <form
@@ -182,7 +186,6 @@ const onSubmit = async (values: SellerFormValues) => {
         className="grid gap-6 lg:grid-cols-3"
       >
         <SellerBasicForm form={form} existing={isEdit} />
-        {isEdit && <SellerVerificationCard form={form} />}
 
         <Card className="rounded-2xl p-6 shadow-soft">
           <div className="mb-4 text-sm font-semibold">Brand Assets</div>

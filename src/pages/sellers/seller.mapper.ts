@@ -14,6 +14,8 @@ function buildCommonPayload(values: SellerFormValues) {
 
     ownerName: values.ownerName.trim(),
 
+    shopCategory: values.shopCategory?.trim() ?? "",
+
     email: values.email.trim().toLowerCase(),
 
     phone: values.phone.trim(),
@@ -25,6 +27,8 @@ function buildCommonPayload(values: SellerFormValues) {
     gstNumber: values.gstNumber.trim(),
 
     businessRegistration: values.businessRegistration.trim(),
+
+    description: values.description?.trim() ?? "",
 
     logo: {
       url: "",
@@ -55,8 +59,6 @@ function buildCommonPayload(values: SellerFormValues) {
     },
 
     commissionRate: values.commissionRate ? Number(values.commissionRate) : null,
-
-    isVerified: values.isVerified,
   };
 }
 

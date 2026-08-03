@@ -60,6 +60,11 @@ export function ProductCard({ product, onDelete, onView, onApprove }: ProductCar
                 {DEAL_TYPE_LABELS[product.dealType]}
               </Badge>
             )}
+
+            {/* Automatic — derived from discountPercent, never admin-set. */}
+            {product.isMassiveDeal && (
+              <Badge className="bg-rose-600 text-white">Massive Deal</Badge>
+            )}
           </div>
 
           <div className="absolute left-2 top-2 flex flex-col gap-1">

@@ -30,12 +30,11 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import useAuth from "@/hooks/useAuth";
+import { MobileSidebar } from "./Sidebar";
 
 import { toast } from "sonner";
 
 import {
-  coupons,
-  deals,
   events,
   notifications,
   orders as ordersMock,
@@ -100,14 +99,6 @@ export function Topbar() {
         )
         .slice(0, 3),
 
-      deals: deals
-        .filter((item) => item.title.toLowerCase().includes(search))
-        .slice(0, 3),
-
-      coupons: coupons
-        .filter((item) => item.code.toLowerCase().includes(search))
-        .slice(0, 3),
-
       events: events
         .filter((item) => item.title.toLowerCase().includes(search))
         .slice(0, 3),
@@ -130,6 +121,8 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-8">
+      <MobileSidebar />
+
       <div className="relative max-w-xl flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 

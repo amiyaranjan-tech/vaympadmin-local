@@ -20,7 +20,7 @@ const PLACEHOLDER_IMAGE = "https://placehold.co/200x200?text=Product";
 
 export default function ProductsTab({
   shopProducts,
-  onDelete,
+  onDeleteProduct,
   brandFilter,
   onClearBrandFilter,
 }: ProductsTabProps) {
@@ -130,7 +130,7 @@ export default function ProductsTab({
                     size="sm"
                     variant="ghost"
                     className="h-7 rounded-lg text-xs text-destructive"
-                    onClick={() => onDelete("Product")}
+                    onClick={() => onDeleteProduct(product._id)}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />
                     Delete

@@ -2,6 +2,7 @@ import api from "./axios";
 
 import type {
   CreateOptionRequest,
+  DeleteOptionRequest,
   DropdownOption,
   DropdownOptions,
   OptionApiResponse,
@@ -35,6 +36,21 @@ const optionApi = {
       "/options",
       payload,
     );
+
+    return response.data;
+  },
+
+  /**
+   * ==========================================
+   * Delete Option
+   * ==========================================
+   */
+  delete: async (
+    payload: DeleteOptionRequest,
+  ): Promise<OptionApiResponse<null>> => {
+    const response = await api.delete<OptionApiResponse<null>>("/options", {
+      data: payload,
+    });
 
     return response.data;
   },

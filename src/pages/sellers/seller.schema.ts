@@ -5,6 +5,8 @@ export const sellerSchema = z.object({
 
   ownerName: z.string().min(2, "Owner name is required"),
 
+  shopCategory: z.string().optional().or(z.literal("")),
+
   email: z.string().email("Invalid email"),
 
   password: z
@@ -22,6 +24,8 @@ export const sellerSchema = z.object({
   gstNumber: z.string().min(5, "GST Number is required"),
 
   businessRegistration: z.string().min(3, "Business Registration is required"),
+
+  description: z.string().optional().or(z.literal("")),
 
   workingDays: z.string().min(2, "Working days required"),
 
@@ -48,11 +52,6 @@ export const sellerSchema = z.object({
       (v) => !v || (Number(v) >= 0 && Number(v) <= 100),
       "Must be between 0 and 100",
     ),
-
-  /**
-   * Admin Verification
-   */
-  isVerified: z.boolean().default(false),
 });
 
 export type SellerFormValues = z.infer<typeof sellerSchema>;

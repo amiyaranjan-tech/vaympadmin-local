@@ -5,16 +5,16 @@ export const productSchema = z.object({
   description: z.string().min(10, "At least 10 chars"),
   brand: z.string().min(1, "Required"),
 
-  // Taxonomy — Category -> Group -> Subcategory
+  // Taxonomy — Gender -> Category -> Subcategory
   category: z.string().min(1, "Required"),
-  group: z.array(z.string()).min(1, "Select at least one group"),
   subcategory: z.string().min(1, "Required"),
 
   gender: z.enum(["men", "women", "unisex", "kids"]),
   tags: z.string(),
 
-  // Cross-cutting merchandising tag — independent of the taxonomy chain.
-  productCollection: z.string().optional().or(z.literal("")),
+  // Merchandising — optional, independent of taxonomy. Internally still
+  // `group` (matches the backend field); labeled "Collections" in the UI.
+  group: z.array(z.string()).default([]),
 
   seller: z.string().min(1, "Please select a shop"),
 
@@ -49,19 +49,7 @@ export const productSchema = z.object({
 
   // Product Highlights
   tryAndBuy: z.boolean(),
-  dealType: z.enum([
-    "none",
-    "bogo",
-    "buy2get1",
-    "buy2get_discount",
-    "tiered_amount",
-    "tiered_percentage",
-    "flash_sale",
-    "limited_offer",
-    "clearance",
-    "combo_offer",
-    "free_shipping",
-  ]),
+  dealType: z.enum(["none", "bogo", "tier_amount", "tier_percentage", "free_shipping"]),
 
   video: z.string().optional().or(z.literal("")),
 });

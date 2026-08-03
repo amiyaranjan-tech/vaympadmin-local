@@ -2,6 +2,7 @@ import optionApi from "@/api/option.api";
 
 import type {
   CreateOptionRequest,
+  DeleteOptionRequest,
   DropdownOption,
   DropdownOptions,
   OptionApiResponse,
@@ -44,6 +45,18 @@ class OptionService {
     const response = await optionApi.create(payload);
 
     return this.handleResponse(response);
+  }
+
+  /**
+   * ==========================================
+   * Delete Option
+   * ==========================================
+   */
+
+  async delete(payload: DeleteOptionRequest): Promise<void> {
+    const response = await optionApi.delete(payload);
+
+    this.handleResponse(response);
   }
 }
 

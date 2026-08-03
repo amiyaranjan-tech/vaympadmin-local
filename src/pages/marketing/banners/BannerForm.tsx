@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Loader2, Upload } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/common/PageHeader";
@@ -29,6 +29,8 @@ import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import type { BannerImage } from "@/types/banner";
 
+import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
+
 import { bannerSchema, BannerFormValues as Form } from "./banner.schema";
 import { createBannerPayload, updateBannerPayload } from "./banner.mapper";
 import { TargetPicker } from "./TargetPicker";
@@ -51,6 +53,31 @@ const STEPS = [
   "Preview",
 ];
 
+/**
+ * ==========================================
+ * Image Upload State
+ * ==========================================
+ * `image` is the only value that ever gets submitted — it's set once,
+ * atomically, from either an edit-mode load or a *successful* Cloudinary
+ * upload. `previewUrl` is purely visual (a local blob URL while a real
+ * upload is in flight); it never leaks into the submit payload.
+ */
+interface ImageUploadState {
+  image: BannerImage;
+  previewUrl: string;
+  status: "idle" | "uploading" | "error";
+  error: string | null;
+  progress: number;
+}
+
+const EMPTY_IMAGE_STATE: ImageUploadState = {
+  image: { url: "", publicId: "" },
+  previewUrl: "",
+  status: "idle",
+  error: null,
+  progress: 0,
+};
+
 export default function BannerForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -61,8 +88,8 @@ export default function BannerForm() {
 
   const [loadingBanner, setLoadingBanner] = useState(isEdit);
   const [step, setStep] = useState(0);
-  const [image, setImage] = useState<BannerImage>({ url: "", publicId: "" });
-  const [thumbnail, setThumbnail] = useState<BannerImage>({ url: "", publicId: "" });
+  const [imageState, setImageState] = useState<ImageUploadState>(EMPTY_IMAGE_STATE);
+  const [thumbnailState, setThumbnailState] = useState<ImageUploadState>(EMPTY_IMAGE_STATE);
   const [targetSearch, setTargetSearch] = useState("");
 
   const form = useForm<Form>({
@@ -178,8 +205,20 @@ export default function BannerForm() {
           status: banner.status,
         });
 
-        setImage(banner.image);
-        setThumbnail(banner.thumbnail);
+        setImageState({
+          image: banner.image,
+          previewUrl: banner.image.url,
+          status: "idle",
+          error: null,
+          progress: 0,
+        });
+        setThumbnailState({
+          image: banner.thumbnail,
+          previewUrl: banner.thumbnail.url,
+          status: "idle",
+          error: null,
+          progress: 0,
+        });
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load banner",
@@ -211,11 +250,29 @@ export default function BannerForm() {
       return;
     }
 
+    if (step === 1) {
+      if (imageState.status === "uploading") {
+        toast.error("Please wait for the image to finish uploading");
+        return;
+      }
+
+      if (!imageState.image.url) {
+        toast.error("A banner image is required");
+        return;
+      }
+    }
+
     if (step < STEPS.length - 1) setStep(step + 1);
   };
 
   const onSubmit = async (values: Form) => {
-    if (!image.url) {
+    if (imageState.status === "uploading") {
+      toast.error("Please wait for the image to finish uploading");
+      setStep(1);
+      return;
+    }
+
+    if (!imageState.image.url) {
       toast.error("A banner image is required");
       setStep(1);
       return;
@@ -223,9 +280,14 @@ export default function BannerForm() {
 
     try {
       if (isEdit && id) {
-        await updateBanner(id, updateBannerPayload(values, image, thumbnail));
+        await updateBanner(
+          id,
+          updateBannerPayload(values, imageState.image, thumbnailState.image),
+        );
       } else {
-        await createBanner(createBannerPayload(values, image, thumbnail));
+        await createBanner(
+          createBannerPayload(values, imageState.image, thumbnailState.image),
+        );
       }
 
       navigate("/marketing/banners");
@@ -236,20 +298,51 @@ export default function BannerForm() {
     }
   };
 
-  const handleImageFile = (files: FileList | null, kind: "image" | "thumbnail") => {
+  const handleImageFile = async (
+    files: FileList | null,
+    kind: "image" | "thumbnail",
+  ) => {
     const file = files?.[0];
 
     if (!file) return;
 
-    const preview = { url: URL.createObjectURL(file), publicId: "" };
+    const setState = kind === "image" ? setImageState : setThumbnailState;
+    const previewUrl = URL.createObjectURL(file);
 
-    if (kind === "image") {
-      setImage(preview);
-    } else {
-      setThumbnail(preview);
+    setState((prev) => ({
+      ...prev,
+      previewUrl,
+      status: "uploading",
+      error: null,
+      progress: 0,
+    }));
+
+    try {
+      const uploaded = await uploadImageToCloudinary(file, {
+        folder: `vaymp/banners/${kind}`,
+        onProgress: (progress) => setState((prev) => ({ ...prev, progress })),
+      });
+
+      setState({
+        image: uploaded,
+        previewUrl: uploaded.url,
+        status: "idle",
+        error: null,
+        progress: 100,
+      });
+
+      toast.success(kind === "image" ? "Image uploaded" : "Thumbnail uploaded");
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        status: "error",
+        error: error instanceof Error ? error.message : "Upload failed",
+      }));
+
+      toast.error(
+        error instanceof Error ? error.message : "Image upload failed",
+      );
     }
-
-    toast.success("Image added");
   };
 
   if (loadingBanner) {
@@ -320,8 +413,13 @@ export default function BannerForm() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Description</Label>
+                    <Label>Subtitle</Label>
                     <Textarea rows={3} {...form.register("description")} />
+                    {form.formState.errors.description && (
+                      <p className="text-xs text-destructive">
+                        {form.formState.errors.description.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
@@ -351,11 +449,28 @@ export default function BannerForm() {
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Mobile Banner Image</Label>
+                    <Label>Mobile Banner Image (required)</Label>
 
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 hover:bg-muted/40">
-                      <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
-                      <div className="text-sm font-medium">Upload image</div>
+                    <label
+                      className={cn(
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 hover:bg-muted/40",
+                        imageState.status === "uploading"
+                          ? "cursor-not-allowed opacity-60"
+                          : "cursor-pointer",
+                      )}
+                    >
+                      {imageState.status === "uploading" ? (
+                        <Loader2 className="mb-2 h-6 w-6 animate-spin text-primary" />
+                      ) : (
+                        <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
+                      )}
+                      <div className="text-sm font-medium">
+                        {imageState.status === "uploading"
+                          ? `Uploading… ${imageState.progress}%`
+                          : imageState.image.url
+                            ? "Replace image"
+                            : "Upload image"}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         Recommended 3:2 or 16:9
                       </div>
@@ -363,17 +478,30 @@ export default function BannerForm() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => handleImageFile(e.target.files, "image")}
+                        disabled={imageState.status === "uploading"}
+                        onChange={(e) => void handleImageFile(e.target.files, "image")}
                       />
                     </label>
 
-                    {image.url && (
+                    {imageState.error && (
+                      <p className="flex items-center gap-1.5 text-xs text-destructive">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {imageState.error}
+                      </p>
+                    )}
+
+                    {(imageState.previewUrl || imageState.image.url) && (
                       <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-xl bg-muted">
                         <img
-                          src={image.url}
+                          src={imageState.previewUrl || imageState.image.url}
                           className="h-full w-full object-cover"
                           alt="Banner preview"
                         />
+                        {imageState.status === "uploading" && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -381,32 +509,54 @@ export default function BannerForm() {
                   <div className="space-y-2">
                     <Label>Thumbnail (optional)</Label>
 
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40">
-                      <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
-                      <div className="text-xs font-medium">Upload thumbnail</div>
+                    <label
+                      className={cn(
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40",
+                        thumbnailState.status === "uploading"
+                          ? "cursor-not-allowed opacity-60"
+                          : "cursor-pointer",
+                      )}
+                    >
+                      {thumbnailState.status === "uploading" ? (
+                        <Loader2 className="mb-2 h-5 w-5 animate-spin text-primary" />
+                      ) : (
+                        <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+                      )}
+                      <div className="text-xs font-medium">
+                        {thumbnailState.status === "uploading"
+                          ? `Uploading… ${thumbnailState.progress}%`
+                          : "Upload thumbnail"}
+                      </div>
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => handleImageFile(e.target.files, "thumbnail")}
+                        disabled={thumbnailState.status === "uploading"}
+                        onChange={(e) => void handleImageFile(e.target.files, "thumbnail")}
                       />
                     </label>
 
-                    {thumbnail.url && (
+                    {thumbnailState.error && (
+                      <p className="flex items-center gap-1.5 text-xs text-destructive">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {thumbnailState.error}
+                      </p>
+                    )}
+
+                    {(thumbnailState.previewUrl || thumbnailState.image.url) && (
                       <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-muted">
                         <img
-                          src={thumbnail.url}
+                          src={thumbnailState.previewUrl || thumbnailState.image.url}
                           className="h-full w-full object-cover"
                           alt="Thumbnail preview"
                         />
+                        {thumbnailState.status === "uploading" && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-
-                  <div className="rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-                    Image upload will be connected after Cloudinary
-                    integration. Desktop banner image support is planned for
-                    a future release.
                   </div>
                 </div>
               )}
@@ -436,10 +586,10 @@ export default function BannerForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Priority</Label>
+                    <Label>Display Order (Priority)</Label>
                     <Input type="number" {...form.register("priority")} />
                     <p className="text-xs text-muted-foreground">
-                      Higher priority banners are shown first.
+                      Controls carousel order — higher numbers show first.
                     </p>
                   </div>
 
@@ -583,13 +733,24 @@ export default function BannerForm() {
               {step === 3 && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Offer Text</Label>
-                    <Input placeholder="Up to 50% off" {...form.register("offerText")} />
+                    <Label>Badge Text (optional)</Label>
+                    <Input
+                      placeholder="⚡ LIMITED TIME"
+                      {...form.register("offerText")}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown as a small pill on the banner. Any text/emoji —
+                      nothing is added automatically.
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>CTA Button Text</Label>
+                    <Label>CTA Button Text (optional)</Label>
                     <Input placeholder="Shop Now" {...form.register("buttonText")} />
+                    <p className="text-xs text-muted-foreground">
+                      Hidden on mobile if left blank, or if Target Type is
+                      "None".
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -679,31 +840,60 @@ export default function BannerForm() {
               {/* Step 5 — Preview */}
               {/* ========================================== */}
               {step === 5 && (
-                <div className="flex justify-center">
-                  <div
-                    className="relative aspect-video w-full max-w-md overflow-hidden rounded-2xl border shadow-soft"
-                    style={{ backgroundColor: form.watch("backgroundColor") || undefined }}
-                  >
-                    {image.url ? (
-                      <img
-                        src={image.url}
-                        className="h-full w-full object-cover"
-                        alt="Banner preview"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                        No image uploaded
-                      </div>
-                    )}
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Approximates the mobile Deals hero card — exact spacing
+                    may vary slightly by device width.
+                  </p>
 
-                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/70 to-transparent p-4">
-                      <span className="text-sm font-semibold text-white">
-                        {form.watch("offerText") || form.watch("name")}
+                  {/*
+                    Mirrors src/components/deals/DealsHeroCard.tsx in the
+                    mobile app: a horizontal card, backgroundColor behind
+                    everything, text column on the left, image *contained*
+                    on the right (not a full-bleed cover photo).
+                  */}
+                  <div
+                    className="flex w-full max-w-md flex-row items-center gap-4 overflow-hidden rounded-[20px] border p-5 shadow-soft"
+                    style={{
+                      backgroundColor: form.watch("backgroundColor") || "#F3EDFF",
+                      aspectRatio: "1000 / 420",
+                    }}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      {form.watch("offerText") && (
+                        <span className="mb-2 w-fit rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                          {form.watch("offerText")}
+                        </span>
+                      )}
+
+                      <span className="text-xl font-bold leading-tight text-foreground line-clamp-2">
+                        {form.watch("name") || "Banner Title"}
                       </span>
 
-                      {form.watch("buttonText") && (
-                        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-black">
+                      {form.watch("description") && (
+                        <span className="mt-1 mb-3 text-sm text-muted-foreground line-clamp-1">
+                          {form.watch("description")}
+                        </span>
+                      )}
+
+                      {form.watch("buttonText") && form.watch("targetType") !== "none" && (
+                        <span className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
                           {form.watch("buttonText")}
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex h-full w-[42%] shrink-0 items-center justify-center">
+                      {imageState.image.url ? (
+                        <img
+                          src={imageState.image.url}
+                          className="max-h-full max-w-full object-contain"
+                          alt="Banner illustration"
+                        />
+                      ) : (
+                        <span className="text-center text-xs text-muted-foreground">
+                          No image uploaded
                         </span>
                       )}
                     </div>
