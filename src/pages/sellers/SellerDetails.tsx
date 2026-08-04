@@ -124,9 +124,11 @@ export default function SellerDetails() {
     [fetchedShopProducts],
   );
 
-  // Only tier_amount/tier_percentage/free_shipping offers are directly
-  // seller-scoped (bogo offers are product-scoped instead — see
-  // DealsTab.tsx) — a plain `seller` filter already excludes bogo docs.
+  // Both bogo AND tier_amount/tier_percentage/free_shipping offers are
+  // directly seller-scoped on the backend (bogo's `seller` is required,
+  // not just product-scoped — see DealsTab.tsx), so this plain `seller`
+  // filter returns every deal type for this shop; DealsTab branches on
+  // `deal.type` to render each correctly.
   const offerParams = useMemo(() => (id ? { seller: id, limit: 50 } : undefined), [id]);
   const { offers: shopDeals } = useOffers(offerParams);
 

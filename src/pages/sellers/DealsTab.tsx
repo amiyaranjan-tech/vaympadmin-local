@@ -15,10 +15,13 @@ import { formatCurrency } from "@/utils/format";
 import type { DealsTabProps } from "./SellerTabs.types";
 
 /**
- * Only this shop's tier_amount/tier_percentage/free_shipping offers show
- * here (see SellerDetails.tsx — `seller` is a direct field on those Offer
- * docs). BOGO offers are scoped by product, not shop, so they're managed
- * from the main Deals page instead (see src/pages/deals/Deals.tsx).
+ * Every active Offer for this shop — bogo AND tier_amount/tier_percentage/
+ * free_shipping alike, since `seller` is a direct required field on bogo
+ * Offers too (see backend models/Offer.js — "ONE BOGO OFFER = ONE SHOP"),
+ * not just tier ones. `shopDeals` (SellerDetails.tsx's plain `{ seller }`
+ * filter) already returns both; each card below branches on `deal.type`
+ * so a bogo offer shows its own Buy X Get Y summary and routes Edit to
+ * the bogo form instead of rendering as a blank/mislabeled tier card.
  */
 export default function DealsTab({ seller, shopDeals }: DealsTabProps) {
   return (
@@ -41,19 +44,31 @@ export default function DealsTab({ seller, shopDeals }: DealsTabProps) {
 
       <div className="grid gap-3 md:grid-cols-2">
         {shopDeals.map((deal) => {
+          const isBogo = deal.type === "bogo";
           const productCount = Array.isArray(deal.products) ? deal.products.length : 0;
 
           return (
           <Card key={deal._id} className="rounded-2xl p-4 shadow-soft">
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-medium">{deal.title}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{deal.title}</div>
+                  <Badge variant="secondary" className="text-[10px] uppercase">
+                    {isBogo ? "BOGO" : "Tiered"}
+                  </Badge>
+                </div>
 
                 <div className="text-xs text-muted-foreground">
-                  Spend {formatCurrency(deal.minSpend)} →{" "}
-                  {deal.type === "tier_amount" && `${formatCurrency(deal.discountAmount)} off`}
-                  {deal.type === "tier_percentage" && `${deal.discountPercent}% off`}
-                  {deal.type === "free_shipping" && "Free shipping"}
+                  {isBogo
+                    ? `Buy ${deal.buyQuantity} → Get ${deal.getQuantity} FREE`
+                    : (
+                      <>
+                        Spend {formatCurrency(deal.minSpend)} →{" "}
+                        {deal.type === "tier_amount" && `${formatCurrency(deal.discountAmount)} off`}
+                        {deal.type === "tier_percentage" && `${deal.discountPercent}% off`}
+                        {deal.type === "free_shipping" && "Free shipping"}
+                      </>
+                    )}
                 </div>
 
                 <div className="mt-1 text-xs font-medium text-muted-foreground">
@@ -69,22 +84,24 @@ export default function DealsTab({ seller, shopDeals }: DealsTabProps) {
 
             <div className="mt-3 flex gap-2">
               <Button size="sm" variant="outline" className="rounded-lg" asChild>
-                <Link to={`/deals/spend-threshold/${deal._id}/edit`}>
+                <Link to={isBogo ? `/deals/bogo/${deal._id}/edit` : `/deals/spend-threshold/${deal._id}/edit`}>
                   <Pencil className="mr-1 h-3 w-3" />
                   Edit
                 </Link>
               </Button>
 
-              <Button size="sm" variant="outline" className="rounded-lg" asChild>
-                <Link to={`/deals/tiered/${seller._id}`}>Manage all tiers</Link>
-              </Button>
+              {!isBogo && (
+                <Button size="sm" variant="outline" className="rounded-lg" asChild>
+                  <Link to={`/deals/tiered/${seller._id}`}>Manage all tiers</Link>
+                </Button>
+              )}
             </div>
           </Card>
           );
         })}
 
         {shopDeals.length === 0 && (
-          <EmptyState title="No spend/tiered deals" description="This shop has no active spend-threshold or tiered offer yet." />
+          <EmptyState title="No deals yet" description="This shop has no active BOGO or spend-threshold/tiered offer yet." />
         )}
       </div>
     </TabsContent>
