@@ -75,7 +75,8 @@ export default function BogoOfferForm() {
   const presetSellerId = searchParams.get("seller") ?? "";
   const presetShopName = searchParams.get("shopName") ?? "";
 
-  const { getOffer, createBogo, updateBogo } = useOffers();
+  const { getOffer, createBogo, updateBogo, offers: sellerBogoOffers, fetchOffers: fetchSellerBogoOffers } =
+    useOffers();
 
   const [loadingOffer, setLoadingOffer] = useState(isEdit);
   const [sellerSearch, setSellerSearch] = useState("");
@@ -142,6 +143,31 @@ export default function BogoOfferForm() {
 
     return options;
   }, [sellers, presetSellerId, presetShopName]);
+
+  // Informational-only overlap hint (see ShopProductSelector's
+  // otherOfferCounts prop) — reuses this same useOffers() instance rather
+  // than a new hook/endpoint, since GET /offers already supports
+  // {type, seller, isEnabled, limit} filtering.
+  useEffect(() => {
+    if (!seller) return;
+
+    void fetchSellerBogoOffers({ type: "bogo", seller, isEnabled: true, limit: 100 }, false);
+  }, [seller, fetchSellerBogoOffers]);
+
+  const otherOfferCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    for (const offer of sellerBogoOffers) {
+      if (offer._id === id) continue; // never count the offer being edited against itself
+
+      for (const product of offer.products) {
+        const productId = typeof product === "string" ? product : product._id;
+        counts[productId] = (counts[productId] ?? 0) + 1;
+      }
+    }
+
+    return counts;
+  }, [sellerBogoOffers, id]);
 
   // ==========================================
   // Shop Change — clears qualifying/free products (RULE: never retain
@@ -367,6 +393,7 @@ export default function BogoOfferForm() {
                     sellerId={seller}
                     selectedIds={products}
                     onChange={(vals) => form.setValue("products", vals, { shouldValidate: true })}
+                    otherOfferCounts={otherOfferCounts}
                   />
                   {form.formState.errors.products && (
                     <p className="text-xs text-destructive">

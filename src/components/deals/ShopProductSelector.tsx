@@ -38,6 +38,14 @@ interface ShopProductSelectorProps {
   sellerId: string;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  // productId -> count of OTHER active BOGO offers (excluding whichever
+  // offer is currently being created/edited) that already list this
+  // product as a qualifying product. Informational only — overlapping
+  // BOGO offers on the same product are allowed by design (the backend
+  // resolves one deterministic winner at checkout, see
+  // cart.service.js#resolveBogoOfferForProduct); this never blocks
+  // selection, it just makes the overlap visible while picking.
+  otherOfferCounts?: Record<string, number>;
 }
 
 /**
@@ -47,7 +55,12 @@ interface ShopProductSelectorProps {
  * targeting (qualifying products); intentionally NOT wired into BOGO's
  * picker (ProductMultiPicker) in this change — that stays untouched.
  */
-export function ShopProductSelector({ sellerId, selectedIds, onChange }: ShopProductSelectorProps) {
+export function ShopProductSelector({
+  sellerId,
+  selectedIds,
+  onChange,
+  otherOfferCounts,
+}: ShopProductSelectorProps) {
   const [search, setSearch] = useState("");
   const [viewProduct, setViewProduct] = useState<Product | null>(null);
 
@@ -159,6 +172,15 @@ export function ShopProductSelector({ sellerId, selectedIds, onChange }: ShopPro
                       <AlertTriangle className="h-3 w-3 shrink-0" />
                       Already in a {DEAL_TYPE_LABEL[product.dealType] ?? "deal"} — adding this
                       offer won't remove it.
+                    </div>
+                  )}
+
+                  {!!otherOfferCounts?.[product._id] && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      Also used in {otherOfferCounts[product._id]} other active BOGO offer
+                      {otherOfferCounts[product._id] === 1 ? "" : "s"}. At checkout, one
+                      deterministic offer wins per purchase — this won't stack.
                     </div>
                   )}
                 </div>
