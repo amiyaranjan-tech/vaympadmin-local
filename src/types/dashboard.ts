@@ -119,6 +119,33 @@ export interface DashboardStats {
 
 /**
  * ==========================================
+ * Engagement Analytics (derived from the generic Event log)
+ * ==========================================
+ */
+
+export interface EngagementTopScreen {
+  screen: string;
+  views: number;
+}
+
+export interface EngagementTopEvent {
+  event: string;
+  count: number;
+}
+
+export interface EngagementAnalytics {
+  range: { from: string; to: string };
+  totalEvents: number;
+  uniqueUsers: number;
+  uniqueSessions: number;
+  sessionsStarted: number;
+  avgActiveDurationMs: number;
+  topScreens: EngagementTopScreen[];
+  topEvents: EngagementTopEvent[];
+}
+
+/**
+ * ==========================================
  * API Error
  * ==========================================
  */

@@ -1,4 +1,10 @@
+import { useState } from "react";
+import { Activity, Clock, Smartphone, Users } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+
 import { PageHeader } from "@/components/common/PageHeader";
+import { StatCard } from "@/components/common/StatCard";
+import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 import { Card } from "@/components/ui/card";
 import { revenueSeries, categorySales, dailyOrders, sellers, products, CATEGORIES_LIST } from "@/data/mock";
 import {
@@ -6,10 +12,24 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 import { formatCurrency } from "@/utils/format";
+import useEngagementAnalytics from "@/hooks/useEngagementAnalytics";
 
 const COLORS = ["var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-chart-4)", "var(--color-chart-5)", "var(--color-primary)"];
 
+function formatDuration(ms: number) {
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
 export default function Analytics() {
+  const [range, setRange] = useState<DateRange | undefined>();
+
+  const { data: engagement, loading: engagementLoading } = useEngagementAnalytics(
+    range?.from ? { from: range.from.toISOString(), to: range.to?.toISOString() } : undefined,
+  );
+
   const topBrands = Object.entries(products.reduce<Record<string, number>>((a, p) => { a[p.brand] = (a[p.brand] ?? 0) + p.sold; return a; }, {}))
     .map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 6);
 
@@ -22,7 +42,82 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Analytics" description="Deep insight into revenue, commission and demand." />
+      <PageHeader
+        title="Analytics"
+        description="Deep insight into revenue, commission and demand."
+        actions={<DateRangeFilter value={range} onChange={setRange} />}
+      />
+
+      <div>
+        <div className="mb-3 text-sm font-semibold text-muted-foreground">
+          Engagement (last {range?.from ? "selected range" : "7 days"})
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Unique users"
+            value={engagementLoading ? "…" : (engagement?.uniqueUsers ?? 0)}
+            icon={Users}
+            tint="primary"
+          />
+          <StatCard
+            label="Sessions"
+            value={engagementLoading ? "…" : (engagement?.sessionsStarted ?? 0)}
+            icon={Smartphone}
+            tint="secondary"
+          />
+          <StatCard
+            label="Avg. active time"
+            value={engagementLoading ? "…" : formatDuration(engagement?.avgActiveDurationMs ?? 0)}
+            icon={Clock}
+            tint="success"
+          />
+          <StatCard
+            label="Total events"
+            value={engagementLoading ? "…" : (engagement?.totalEvents ?? 0)}
+            icon={Activity}
+            tint="warning"
+          />
+        </div>
+
+        {!engagementLoading && engagement && (engagement.topScreens.length > 0 || engagement.topEvents.length > 0) && (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {engagement.topScreens.length > 0 && (
+              <Card className="rounded-2xl p-6 shadow-soft">
+                <div className="mb-4 text-sm font-semibold">Top screens</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={engagement.topScreens} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
+                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis dataKey="screen" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={100} />
+                    <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", background: "var(--color-popover)" }} />
+                    <Bar dataKey="views" fill="var(--color-chart-1)" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            )}
+
+            {engagement.topEvents.length > 0 && (
+              <Card className="rounded-2xl p-6 shadow-soft">
+                <div className="mb-4 text-sm font-semibold">Top events</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={engagement.topEvents} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
+                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis dataKey="event" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={140} />
+                    <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--color-border)", background: "var(--color-popover)" }} />
+                    <Bar dataKey="count" fill="var(--color-chart-2)" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-1 text-sm font-semibold text-muted-foreground">
+        Sales overview (demo data — connects once the Orders module ships)
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="rounded-2xl p-6 shadow-soft">

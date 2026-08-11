@@ -1,6 +1,10 @@
 import api from "./axios";
 
-import type { DashboardApiResponse, DashboardStats } from "@/types/dashboard";
+import type {
+  DashboardApiResponse,
+  DashboardStats,
+  EngagementAnalytics,
+} from "@/types/dashboard";
 
 /**
  * Dashboard API
@@ -16,6 +20,23 @@ const dashboardApi = {
       await api.get<DashboardApiResponse<DashboardStats>>(
         "/dashboard/stats",
       );
+
+    return response.data;
+  },
+
+  /**
+   * ==========================================
+   * Get Engagement Analytics
+   * ==========================================
+   */
+  getEngagement: async (params?: {
+    from?: string;
+    to?: string;
+  }): Promise<DashboardApiResponse<EngagementAnalytics>> => {
+    const response = await api.get<DashboardApiResponse<EngagementAnalytics>>(
+      "/dashboard/engagement",
+      { params },
+    );
 
     return response.data;
   },

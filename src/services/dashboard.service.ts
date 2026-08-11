@@ -1,6 +1,10 @@
 import dashboardApi from "@/api/dashboard.api";
 
-import type { DashboardApiResponse, DashboardStats } from "@/types/dashboard";
+import type {
+  DashboardApiResponse,
+  DashboardStats,
+  EngagementAnalytics,
+} from "@/types/dashboard";
 
 class DashboardService {
   /**
@@ -25,6 +29,21 @@ class DashboardService {
 
   async getStats(): Promise<DashboardStats> {
     const response = await dashboardApi.getStats();
+
+    return this.handleResponse(response);
+  }
+
+  /**
+   * ==========================================
+   * Get Engagement Analytics
+   * ==========================================
+   */
+
+  async getEngagement(params?: {
+    from?: string;
+    to?: string;
+  }): Promise<EngagementAnalytics> {
+    const response = await dashboardApi.getEngagement(params);
 
     return this.handleResponse(response);
   }
