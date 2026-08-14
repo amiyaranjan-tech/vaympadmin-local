@@ -1,0 +1,15 @@
+services:
+  - type: web
+    runtime: static
+    name: vaympadmin-local
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # Render's Static Sites don't read a Netlify-style public/_redirects
+    # file — that convention is Netlify-only. This is the actual mechanism
+    # Render uses for SPA client-side routing: without it, any direct
+    # load/reload of a non-root path (e.g. /products) 404s at the server
+    # before React Router ever gets a chance to handle it.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
