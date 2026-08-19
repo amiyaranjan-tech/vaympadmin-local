@@ -215,54 +215,70 @@ export default function Deals() {
                     </Button>
                   </div>
 
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {group.offers.map((offer) => {
                       const productCount = Array.isArray(offer.products) ? offer.products.length : 0;
 
                       return (
-                        <div
-                          key={offer._id}
-                          className="flex items-center justify-between rounded-xl border p-3"
-                        >
-                          <div>
-                            <div className="text-sm font-medium">{offer.title}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Spend {formatCurrency(offer.minSpend)} →{" "}
-                              {offer.type === "tier_amount" && `${formatCurrency(offer.discountAmount)} off`}
-                              {offer.type === "tier_percentage" && `${offer.discountPercent}% off`}
-                              {offer.type === "free_shipping" && "Free shipping"}
-                              {offer.maxUses != null && ` · ${offer.usedCount}/${offer.maxUses} used`}
-                            </div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              {offer.scope === "entire_shop"
-                                ? "Entire Shop"
-                                : `Specific Products · ${productCount} product${productCount === 1 ? "" : "s"}`}
-                              {offer.shopBanners.length > 0
-                                ? ` · ${offer.shopBanners.length} banner${offer.shopBanners.length === 1 ? "" : "s"}`
-                                : " · No banner"}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={offer.isEnabled}
-                              onCheckedChange={(v) => void updateStatus(offer._id, v)}
+                        <Card key={offer._id} className="overflow-hidden rounded-2xl p-0 shadow-soft">
+                          {offer.shopBanners[0]?.url && (
+                            <div
+                              className="h-24 bg-cover bg-center bg-muted"
+                              style={{ backgroundImage: `url(${offer.shopBanners[0].url})` }}
                             />
-                            <Button size="sm" variant="outline" className="rounded-lg" asChild>
-                              <Link to={`/deals/spend-threshold/${offer._id}/edit`}>
-                                <Pencil className="h-3 w-3" />
-                              </Link>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="rounded-lg text-destructive"
-                              onClick={() => handleDeleteOffer(offer._id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                          )}
+
+                          <div className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="font-medium">{offer.title}</div>
+                                <div className="mt-0.5 text-xs text-muted-foreground">{group.shopName}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Spend {formatCurrency(offer.minSpend)} →{" "}
+                                  {offer.type === "tier_amount" && `${formatCurrency(offer.discountAmount)} off`}
+                                  {offer.type === "tier_percentage" && `${offer.discountPercent}% off`}
+                                  {offer.type === "free_shipping" && "Free shipping"}
+                                  {offer.maxUses != null && ` · ${offer.usedCount}/${offer.maxUses} used`}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {offer.scope === "entire_shop"
+                                    ? "Entire Shop"
+                                    : `Specific Products · ${productCount} product${productCount === 1 ? "" : "s"}`}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Offer Priority: {offer.priority}
+                                  {offer.shopBanners.length > 0 &&
+                                    ` · ${offer.shopBanners.length} banner${offer.shopBanners.length === 1 ? "" : "s"}`}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {formatDate(offer.startDate)} → {formatDate(offer.endDate)}
+                                </div>
+                              </div>
+                              <Switch
+                                checked={offer.isEnabled}
+                                onCheckedChange={(v) => void updateStatus(offer._id, v)}
+                              />
+                            </div>
+
+                            <div className="mt-3 flex gap-2">
+                              <Button size="sm" variant="outline" className="rounded-lg" asChild>
+                                <Link to={`/deals/spend-threshold/${offer._id}/edit`}>
+                                  <Pencil className="mr-1 h-3 w-3" />
+                                  Edit
+                                </Link>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="rounded-lg text-destructive"
+                                onClick={() => handleDeleteOffer(offer._id)}
+                              >
+                                <Trash2 className="mr-1 h-3 w-3" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
-                        </div>
+                        </Card>
                       );
                     })}
                   </div>
