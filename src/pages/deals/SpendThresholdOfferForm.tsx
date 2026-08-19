@@ -460,21 +460,6 @@ export default function SpendThresholdOfferForm() {
         </Card>
 
         {/* ========================================== */}
-        {/* Limits */}
-        {/* ========================================== */}
-        <Card className="space-y-4 rounded-2xl p-6 shadow-soft">
-          <SectionHeading title="Limits" />
-
-          <div className="space-y-2">
-            <Label>Usage Cap (optional)</Label>
-            <Input type="number" min={0} placeholder="Uncapped" {...form.register("maxUses")} />
-            <p className="text-xs text-muted-foreground">
-              Total number of times this offer can be redeemed, across all customers.
-            </p>
-          </div>
-        </Card>
-
-        {/* ========================================== */}
         {/* Shop Page Banners */}
         {/* ========================================== */}
         <Card className="space-y-4 rounded-2xl p-6 shadow-soft">
