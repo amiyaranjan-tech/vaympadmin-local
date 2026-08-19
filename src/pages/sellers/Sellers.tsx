@@ -28,6 +28,7 @@ import {
 
 import { formatCurrency } from "@/utils/format";
 import { cn } from "@/lib/utils";
+import { CardGridSkeleton } from "@/components/common/Skeletons";
 
 import {
   SELLER_ACTION_META,
@@ -156,14 +157,6 @@ export default function Sellers() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -226,6 +219,9 @@ export default function Sellers() {
         </div>
       </Card>
 
+      {loading ? (
+        <CardGridSkeleton count={6} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" />
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((seller: Seller) => {
           const statusMeta = SELLER_STATUS_META[seller.status];
@@ -367,6 +363,7 @@ export default function Sellers() {
           );
         })}
       </div>
+      )}
 
       {!loading && filtered.length === 0 && (
         <Card className="rounded-2xl py-16 text-center shadow-soft">

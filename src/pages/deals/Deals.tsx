@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CardGridSkeleton } from "@/components/common/Skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import useOffers from "@/hooks/useOffers";
 import useProducts from "@/hooks/useProducts";
@@ -100,7 +102,9 @@ export default function Deals() {
             </Button>
           </div>
 
-          {!offersLoading && bogoOffers.length === 0 ? (
+          {offersLoading ? (
+            <CardGridSkeleton count={6} className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" />
+          ) : bogoOffers.length === 0 ? (
             <EmptyState
               title="No BOGO offers yet"
               description="buyQuantity/getQuantity covers both classic BOGO and Buy 2 Get 2 — just different numbers on the same offer."
@@ -193,7 +197,9 @@ export default function Deals() {
             </Button>
           </div>
 
-          {!offersLoading && tierOffersBySeller.length === 0 ? (
+          {offersLoading ? (
+            <CardGridSkeleton count={3} className="space-y-3" />
+          ) : tierOffersBySeller.length === 0 ? (
             <EmptyState
               title="No tiered or spend offers yet"
               description="Both a quick spend-threshold offer and a full multi-tier Tiered Deal are the same underlying offer type, scoped to one shop."
@@ -279,9 +285,11 @@ export default function Deals() {
                   Automatic · {MASSIVE_DEAL_MIN_DISCOUNT_PERCENT}% OFF &amp; Above
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {massiveLoading
-                    ? "Loading..."
-                    : `${massiveDealProductCount} product${massiveDealProductCount === 1 ? "" : "s"} currently qualify`}
+                  {massiveLoading ? (
+                    <Skeleton className="h-3 w-40" />
+                  ) : (
+                    `${massiveDealProductCount} product${massiveDealProductCount === 1 ? "" : "s"} currently qualify`
+                  )}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
                   No setup required. Products with {MASSIVE_DEAL_MIN_DISCOUNT_PERCENT}% or more discount

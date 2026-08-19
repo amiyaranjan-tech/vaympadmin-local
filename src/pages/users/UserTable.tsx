@@ -4,12 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { TableRowSkeleton } from "@/components/common/Skeletons";
 
 import { formatDate } from "@/utils/format";
 
 import { UserTableProps } from "./types";
 
-export function UserTable({ users, onView }: UserTableProps) {
+export function UserTable({ users, onView, loading }: UserTableProps & { loading?: boolean }) {
   return (
     <Card className="overflow-hidden rounded-2xl shadow-soft">
       <div className="overflow-x-auto">
@@ -33,7 +34,9 @@ export function UserTable({ users, onView }: UserTableProps) {
           </thead>
 
           <tbody>
-            {users.length === 0 ? (
+            {loading ? (
+              <TableRowSkeleton rows={6} cols={7} />
+            ) : users.length === 0 ? (
               <tr>
                 <td
                   colSpan={7}

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, AlertTriangle, Eye, Loader2, PackageSearch, Search } from "lucide-react";
+import { AlertCircle, AlertTriangle, Eye, PackageSearch, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PickerRowSkeleton } from "@/components/common/Skeletons";
 import { ProductQuickViewDrawer } from "@/components/products/ProductQuickViewDrawer";
 
 import useProducts from "@/hooks/useProducts";
@@ -108,9 +109,7 @@ export function ShopProductSelector({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+        <PickerRowSkeleton rows={4} />
       ) : error ? (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />

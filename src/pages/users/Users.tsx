@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 
 import useUsers from "@/hooks/useUsers";
 
@@ -47,14 +46,6 @@ export default function Users() {
     );
   }, [search, users]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -90,7 +81,7 @@ export default function Users() {
         onVerifiedChange={setIsVerified}
       />
 
-      <UserTable users={filteredUsers} onView={setSelectedUser} />
+      <UserTable users={filteredUsers} onView={setSelectedUser} loading={loading} />
 
       <UserDetailsSheet
         open={!!selectedUser}

@@ -11,7 +11,6 @@ import {
   Plus,
   ArrowRight,
   Send,
-  Loader2,
   Clock,
 } from "lucide-react";
 
@@ -21,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/common/StatCard";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { StatCardRowSkeleton, CardSkeleton } from "@/components/common/Skeletons";
 
 import useDashboard from "@/hooks/useDashboard";
 
@@ -43,8 +43,23 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <PageHeader
+          title="Dashboard"
+          description="Real-time overview of your hyperlocal fashion marketplace."
+        />
+
+        <StatCardRowSkeleton count={6} className="sm:grid-cols-2 lg:grid-cols-3" />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       </div>
     );
   }

@@ -12,6 +12,7 @@ import type { Event, Order } from "./SellerTabs.types";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatCard } from "@/components/common/StatCard";
+import { ProfileHeaderSkeleton, StatCardRowSkeleton, CardGridSkeleton } from "@/components/common/Skeletons";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,6 @@ import { cn } from "@/lib/utils";
 
 import {
   IndianRupee,
-  Loader2,
   Package,
   Pencil,
   ShieldCheck,
@@ -252,8 +252,10 @@ export default function SellerDetails() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <ProfileHeaderSkeleton />
+        <StatCardRowSkeleton count={4} />
+        <CardGridSkeleton count={3} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" />
       </div>
     );
   }

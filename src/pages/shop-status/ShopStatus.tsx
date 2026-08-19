@@ -5,9 +5,10 @@ import { StatCard } from "@/components/common/StatCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatCardRowSkeleton, TableRowSkeleton } from "@/components/common/Skeletons";
 import useSellers from "@/hooks/useSellers";
 import { formatCurrency } from "@/utils/format";
-import { DoorOpen, DoorClosed, Clock, Timer, Loader2 } from "lucide-react";
+import { DoorOpen, DoorClosed, Clock, Timer } from "lucide-react";
 
 const PLACEHOLDER_LOGO = "https://placehold.co/64x64?text=Logo";
 
@@ -20,14 +21,6 @@ export default function ShopStatus() {
   const openingSoon = sellers.filter((s) => s.shopStatus === "opening_soon");
   const closingSoon = sellers.filter((s) => s.shopStatus === "closing_soon");
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -35,12 +28,16 @@ export default function ShopStatus() {
         description="Live operational status across the marketplace, computed from each shop's working hours (or a manual override)."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Open Shops" value={open.length} icon={DoorOpen} tint="success" />
-        <StatCard label="Closed Shops" value={closed.length} icon={DoorClosed} tint="destructive" />
-        <StatCard label="Opening Soon" value={openingSoon.length} icon={Clock} tint="warning" />
-        <StatCard label="Closing Soon" value={closingSoon.length} icon={Timer} tint="secondary" />
-      </div>
+      {loading ? (
+        <StatCardRowSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Open Shops" value={open.length} icon={DoorOpen} tint="success" />
+          <StatCard label="Closed Shops" value={closed.length} icon={DoorClosed} tint="destructive" />
+          <StatCard label="Opening Soon" value={openingSoon.length} icon={Clock} tint="warning" />
+          <StatCard label="Closing Soon" value={closingSoon.length} icon={Timer} tint="secondary" />
+        </div>
+      )}
 
       <Card className="overflow-hidden rounded-2xl shadow-soft">
         <table className="w-full text-sm">
@@ -56,7 +53,10 @@ export default function ShopStatus() {
             </tr>
           </thead>
           <tbody>
-            {sellers.map((s) => (
+            {loading ? (
+              <TableRowSkeleton rows={6} cols={7} />
+            ) : (
+              sellers.map((s) => (
               <tr key={s._id} className="border-t border-border/60 hover:bg-muted/30">
                 <td className="px-4 py-3">
                   <Link
@@ -117,7 +117,8 @@ export default function ShopStatus() {
                   </div>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </Card>

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CardGridSkeleton } from "@/components/common/Skeletons";
 
 import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
@@ -268,7 +269,12 @@ export default function Products() {
         />
       </Card>
 
-      {!loading && products.length === 0 ? (
+      {loading ? (
+        <CardGridSkeleton
+          count={8}
+          className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+        />
+      ) : products.length === 0 ? (
         hasActiveFilters ? (
           <EmptyState
             icon={SearchX}

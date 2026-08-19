@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
+import { CardGridSkeleton } from "@/components/common/Skeletons";
 import {
   Pagination,
   PaginationContent,
@@ -148,7 +149,9 @@ export default function Banners() {
         />
       </Card>
 
-      {!loading && banners.length === 0 ? (
+      {loading ? (
+        <CardGridSkeleton count={6} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" />
+      ) : banners.length === 0 ? (
         hasActiveFilters ? (
           <EmptyState
             icon={SearchX}

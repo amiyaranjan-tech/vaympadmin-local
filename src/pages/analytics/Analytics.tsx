@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
 import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 import { Card } from "@/components/ui/card";
+import { StatCardRowSkeleton } from "@/components/common/Skeletons";
 import { revenueSeries, categorySales, dailyOrders, sellers, products, CATEGORIES_LIST } from "@/data/mock";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -53,32 +54,36 @@ export default function Analytics() {
           Engagement (last {range?.from ? "selected range" : "7 days"})
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Unique users"
-            value={engagementLoading ? "…" : (engagement?.uniqueUsers ?? 0)}
-            icon={Users}
-            tint="primary"
-          />
-          <StatCard
-            label="Sessions"
-            value={engagementLoading ? "…" : (engagement?.sessionsStarted ?? 0)}
-            icon={Smartphone}
-            tint="secondary"
-          />
-          <StatCard
-            label="Avg. active time"
-            value={engagementLoading ? "…" : formatDuration(engagement?.avgActiveDurationMs ?? 0)}
-            icon={Clock}
-            tint="success"
-          />
-          <StatCard
-            label="Total events"
-            value={engagementLoading ? "…" : (engagement?.totalEvents ?? 0)}
-            icon={Activity}
-            tint="warning"
-          />
-        </div>
+        {engagementLoading ? (
+          <StatCardRowSkeleton count={4} />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Unique users"
+              value={engagement?.uniqueUsers ?? 0}
+              icon={Users}
+              tint="primary"
+            />
+            <StatCard
+              label="Sessions"
+              value={engagement?.sessionsStarted ?? 0}
+              icon={Smartphone}
+              tint="secondary"
+            />
+            <StatCard
+              label="Avg. active time"
+              value={formatDuration(engagement?.avgActiveDurationMs ?? 0)}
+              icon={Clock}
+              tint="success"
+            />
+            <StatCard
+              label="Total events"
+              value={engagement?.totalEvents ?? 0}
+              icon={Activity}
+              tint="warning"
+            />
+          </div>
+        )}
 
         {!engagementLoading && engagement && (engagement.topScreens.length > 0 || engagement.topEvents.length > 0) && (
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
