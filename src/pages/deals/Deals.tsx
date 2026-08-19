@@ -84,6 +84,7 @@ export default function Deals() {
         <TabsList className="rounded-xl">
           <TabsTrigger value="bogo">BOGO Deals</TabsTrigger>
           <TabsTrigger value="tiered">Spend & Tiered Deals</TabsTrigger>
+          <TabsTrigger value="massive">Massive Deals</TabsTrigger>
         </TabsList>
 
         {/* ========================================== */}
@@ -263,11 +264,13 @@ export default function Deals() {
               ))}
             </div>
           )}
+        </TabsContent>
 
-          {/* ========================================== */}
-          {/* Massive Deals — automatic classification, not a deal admin */}
-          {/* configures. Shown here purely for visibility/discovery. */}
-          {/* ========================================== */}
+        {/* ========================================== */}
+        {/* Massive Deals — automatic classification, not a deal admin */}
+        {/* configures. Its own tab purely for visibility/discovery. */}
+        {/* ========================================== */}
+        <TabsContent value="massive" className="mt-4 space-y-4">
           <Card className="rounded-2xl p-4 shadow-soft">
             <div className="flex items-start justify-between gap-4">
               <div>
