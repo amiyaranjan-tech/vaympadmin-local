@@ -10,6 +10,7 @@ import { CardGridSkeleton } from "@/components/common/Skeletons";
 
 import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
+import useOffers from "@/hooks/useOffers";
 import type { ProductQueryParams, ProductStockStatus } from "@/types/product";
 
 import { Product } from "./types";
@@ -25,6 +26,14 @@ const STOCK_STATUS_MAP: Record<string, ProductStockStatus> = {
   "low-stock": "low_stock",
   "out-of-stock": "out_of_stock",
 };
+
+// Stable reference — see Deals.tsx's own LIST_PARAMS for why a fresh
+// literal every render would re-fire useOffers' initial-load effect in a
+// loop. Every active offer across every shop, so each card can filter
+// down to just the ones that apply to its own product (see
+// dealMatching.ts#activeOffersForProduct) — same low-volume-admin-list
+// reasoning as Deals.tsx's own single unfiltered fetch.
+const OFFERS_LIST_PARAMS = { limit: 100 };
 
 export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -129,6 +138,7 @@ export default function Products() {
     useProducts();
 
   const { sellers } = useSellers({ limit: 100 });
+  const { offers } = useOffers(OFFERS_LIST_PARAMS);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -311,6 +321,7 @@ export default function Products() {
             <ProductCard
               key={product._id}
               product={product}
+              offers={offers}
               onDelete={handleDelete}
               onView={(product) => {
                 setSelectedProduct(product);

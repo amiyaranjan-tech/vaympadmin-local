@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
@@ -16,17 +17,29 @@ import {
 import { formatCurrency } from "@/utils/format";
 import { Product } from "./types";
 import { STATUS_BADGE_VARIANT, STATUS_LABELS } from "./productStatus";
-import { DEAL_TYPE_LABELS } from "./productMeta";
+import { ProductDealSheet } from "./ProductDealSheet";
+import { activeOffersForProduct, offerMechanicLabel } from "./dealMatching";
+import type { Offer } from "@/types/offer";
 
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
   onView: (product: Product) => void;
   onApprove?: (id: string) => void;
+  // Every currently-active offer across every shop — this card filters
+  // down to just the ones that actually apply to `product` (see
+  // activeOffersForProduct). Passed once from Products.tsx rather than
+  // each card fetching its own copy.
+  offers?: Offer[];
 }
 
-export function ProductCard({ product, onDelete, onView, onApprove }: ProductCardProps) {
+export function ProductCard({ product, onDelete, onView, onApprove, offers = [] }: ProductCardProps) {
   const canApprove = product.status === "pending_review";
+  const [showDealSheet, setShowDealSheet] = useState(false);
+
+  const activeOffers = activeOffersForProduct(offers, product);
+  const hasMultipleDeals = activeOffers.length > 1;
+  const hasOneDeal = activeOffers.length === 1;
 
   return (
     <motion.div whileHover={{ y: -3 }}>
@@ -55,9 +68,21 @@ export function ProductCard({ product, onDelete, onView, onApprove }: ProductCar
               <Badge className="bg-emerald-600 text-white">Try & Buy</Badge>
             )}
 
-            {product.dealType && product.dealType !== "none" && (
-              <Badge className="bg-amber-500 text-white">
-                {DEAL_TYPE_LABELS[product.dealType]}
+            {hasMultipleDeals && (
+              <Badge
+                className="cursor-pointer bg-amber-500 text-white hover:bg-amber-500/90"
+                onClick={() => setShowDealSheet(true)}
+              >
+                DEAL ›
+              </Badge>
+            )}
+
+            {hasOneDeal && (
+              <Badge
+                className="cursor-pointer bg-amber-500 text-white hover:bg-amber-500/90"
+                onClick={() => setShowDealSheet(true)}
+              >
+                {offerMechanicLabel(activeOffers[0])} ›
               </Badge>
             )}
 
@@ -149,6 +174,10 @@ export function ProductCard({ product, onDelete, onView, onApprove }: ProductCar
           </div>
         </div>
       </Card>
+
+      {(hasMultipleDeals || hasOneDeal) && (
+        <ProductDealSheet open={showDealSheet} onOpenChange={setShowDealSheet} offers={activeOffers} />
+      )}
     </motion.div>
   );
 }
