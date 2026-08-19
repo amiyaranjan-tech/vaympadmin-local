@@ -68,6 +68,8 @@ function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
 
     tryAndBuy: values.tryAndBuy,
 
+    isReturnable: values.isReturnable,
+
     // dealType is intentionally never sent here — it's owned by the
     // deal-link flow (BogoOfferForm/TieredDealsForm linking a product to
     // an Offer, see offer.service.js#syncBogoProductDealTypes), not this

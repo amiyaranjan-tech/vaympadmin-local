@@ -50,6 +50,12 @@ export const productSchema = z.object({
   // Product Highlights
   tryAndBuy: z.boolean(),
 
+  // A non-returnable product can never be Try & Buy — enforced in the UI
+  // (see ProductForm's own onCheckedChange) and again server-side (the
+  // backend's pre-save hook forces tryAndBuy off regardless), so this
+  // schema itself doesn't need a cross-field refinement.
+  isReturnable: z.boolean(),
+
   video: z.string().optional().or(z.literal("")),
 });
 

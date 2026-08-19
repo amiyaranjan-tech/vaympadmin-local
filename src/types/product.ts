@@ -137,6 +137,11 @@ export interface Product {
   tryAndBuy: boolean;
   dealType: DealType;
 
+  // A non-returnable product can never be Try & Buy — enforced server-side
+  // (see the backend's Product model pre-save hook), not just in this
+  // form. Defaults to true (returnable) for every existing product.
+  isReturnable: boolean;
+
   images: ProductImage[];
   video: string;
 
@@ -204,6 +209,7 @@ export interface CreateProductRequest {
   isBogo?: boolean;
 
   tryAndBuy?: boolean;
+  isReturnable?: boolean;
   dealType?: DealType;
 
   images?: ProductImage[];
