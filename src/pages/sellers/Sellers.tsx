@@ -31,8 +31,8 @@ import { cn } from "@/lib/utils";
 import { CardGridSkeleton } from "@/components/common/Skeletons";
 
 import {
+  getSellerActions,
   SELLER_ACTION_META,
-  SELLER_STATUS_ACTIONS,
   SELLER_STATUS_META,
 } from "./seller.status";
 import type { SellerAction } from "./seller.status";
@@ -76,10 +76,9 @@ export default function Sellers() {
     error,
     fetchSellers,
     verifySeller,
-    suspendSeller,
+    unverifySeller,
     deactivateSeller,
     reactivateSeller,
-    deleteSeller,
   } = useSellers();
 
   useEffect(() => {
@@ -134,8 +133,8 @@ export default function Sellers() {
           await verifySeller(id);
           break;
 
-        case "suspend":
-          await suspendSeller(id);
+        case "unverify":
+          await unverifySeller(id);
           break;
 
         case "deactivate":
@@ -144,10 +143,6 @@ export default function Sellers() {
 
         case "reactivate":
           await reactivateSeller(id);
-          break;
-
-        case "archive":
-          await deleteSeller(id);
           break;
       }
     } catch (err) {
@@ -225,7 +220,7 @@ export default function Sellers() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((seller: Seller) => {
           const statusMeta = SELLER_STATUS_META[seller.status];
-          const actions = SELLER_STATUS_ACTIONS[seller.status];
+          const actions = getSellerActions(seller);
 
           return (
             <motion.div

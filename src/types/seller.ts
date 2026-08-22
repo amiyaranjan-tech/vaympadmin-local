@@ -145,6 +145,9 @@ export interface Seller {
   verifiedAt?: string | null;
   verifiedBy?: AdminRef;
 
+  unverifiedAt?: string | null;
+  unverifiedBy?: AdminRef;
+
   activatedAt?: string | null;
   activatedBy?: AdminRef;
 

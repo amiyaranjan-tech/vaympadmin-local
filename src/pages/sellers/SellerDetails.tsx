@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import sellerService from "@/services/seller.service";
@@ -32,8 +32,8 @@ import {
 
 import SellerTabs from "./SellerTabs";
 import {
+  getSellerActions,
   SELLER_ACTION_META,
-  SELLER_STATUS_ACTIONS,
   SELLER_STATUS_META,
 } from "./seller.status";
 import type { SellerAction } from "./seller.status";
@@ -83,7 +83,6 @@ function LifecycleRow({ label, at, by }: LifecycleRowProps) {
 
 export default function SellerDetails() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [seller, setSeller] = useState<Seller | null>(null);
   const [brands, setBrands] = useState<SellerBrand[]>([]);
@@ -212,20 +211,11 @@ export default function SellerDetails() {
     try {
       setActionPending(true);
 
-      if (action === "archive") {
-        await sellerService.delete(id);
-
-        toast.success("Seller archived successfully");
-        navigate("/sellers");
-
-        return;
-      }
-
       const updated =
         action === "verify"
           ? await sellerService.verify(id)
-          : action === "suspend"
-            ? await sellerService.suspend(id)
+          : action === "unverify"
+            ? await sellerService.unverify(id)
             : action === "deactivate"
               ? await sellerService.deactivate(id)
               : await sellerService.reactivate(id);
@@ -233,11 +223,10 @@ export default function SellerDetails() {
       setSeller(updated);
 
       const successMessage: Record<SellerAction, string> = {
-        verify: "Seller verified and activated",
-        suspend: "Seller suspended",
+        verify: "Seller verified",
+        unverify: "Seller verification removed",
         deactivate: "Seller deactivated",
         reactivate: "Seller reactivated",
-        archive: "Seller archived successfully",
       };
 
       toast.success(successMessage[action]);
@@ -286,7 +275,7 @@ export default function SellerDetails() {
         )}`}
         actions={
           <>
-            {SELLER_STATUS_ACTIONS[seller.status].map((action) => {
+            {getSellerActions(seller).map((action) => {
               const meta = SELLER_ACTION_META[action];
               const Icon = meta.icon;
 

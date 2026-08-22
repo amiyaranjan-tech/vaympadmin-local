@@ -1,6 +1,6 @@
 // src/pages/sellers/seller.status.ts
 
-import { Archive, Ban, PowerOff, RotateCcw, ShieldCheck } from "lucide-react";
+import { PowerOff, RotateCcw, ShieldCheck, ShieldOff } from "lucide-react";
 
 import type { SellerStatus } from "@/types/seller";
 
@@ -43,19 +43,48 @@ export const SELLER_STATUS_META: Record<
  * would reject.
  */
 
-export type SellerAction =
-  | "verify"
-  | "suspend"
-  | "deactivate"
-  | "reactivate"
-  | "archive";
+export type SellerAction = "verify" | "unverify" | "deactivate" | "reactivate";
 
 export const SELLER_STATUS_ACTIONS: Record<SellerStatus, SellerAction[]> = {
-  pending: ["verify", "archive"],
-  active: ["suspend", "deactivate"],
-  suspended: ["reactivate", "archive"],
-  inactive: ["reactivate", "archive"],
+  pending: ["verify"],
+  active: ["deactivate"],
+  suspended: ["reactivate"],
+  inactive: ["reactivate"],
 };
+
+/**
+ * ==========================================
+ * Status + Verification -> Available Quick Actions
+ * ==========================================
+ *
+ * verify/unverify are gated on `isVerified`, not `status` — the backend
+ * (services/seller.service.js#updateVerification) allows verifying from
+ * "pending" (first approval, also activates) or "active" (re-verifying a
+ * seller the admin previously unverified), and allows unverifying
+ * whenever isVerified is currently true, regardless of status. Layers
+ * that on top of SELLER_STATUS_ACTIONS rather than duplicating "verify"/
+ * "unverify" into every status's static list above.
+ */
+
+export function getSellerActions(seller: {
+  status: SellerStatus;
+  isVerified: boolean;
+}): SellerAction[] {
+  const actions = [...SELLER_STATUS_ACTIONS[seller.status]];
+
+  if (seller.isVerified) {
+    if (!actions.includes("unverify")) {
+      actions.push("unverify");
+    }
+  } else if (
+    (seller.status === "pending" || seller.status === "active") &&
+    !actions.includes("verify")
+  ) {
+    actions.push("verify");
+  }
+
+  return actions;
+}
 
 /**
  * ==========================================
@@ -79,12 +108,13 @@ export const SELLER_ACTION_META: Record<
     label: "Verify Seller",
     icon: ShieldCheck,
     confirm:
-      "Verify this seller? This will mark them verified and activate their shop immediately.",
+      "Verify this seller? This marks their shop as verified (and activates it, if it isn't already).",
   },
-  suspend: {
-    label: "Suspend",
-    icon: Ban,
-    confirm: "Suspend this seller? Their shop will stop being usable until reactivated.",
+  unverify: {
+    label: "Unverify Seller",
+    icon: ShieldOff,
+    confirm:
+      "Remove this seller's verified badge? They won't be able to add or edit products until re-verified. This doesn't change their shop status — use Deactivate to make the shop unusable for a while.",
   },
   deactivate: {
     label: "Deactivate",
@@ -95,12 +125,5 @@ export const SELLER_ACTION_META: Record<
     label: "Reactivate",
     icon: RotateCcw,
     confirm: "Reactivate this seller? Their shop will become usable again.",
-  },
-  archive: {
-    label: "Archive Seller",
-    icon: Archive,
-    confirm:
-      "Archive this seller? They'll be hidden from the marketplace. This can be reversed later, no data is permanently deleted.",
-    destructive: true,
   },
 };

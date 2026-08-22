@@ -226,6 +226,37 @@ export default function useSellers(initialParams?: SellerQueryParams) {
 
   /**
    * ==========================================
+   * Unverify Seller
+   * (strips the verified badge only, status untouched)
+   * ==========================================
+   */
+
+  const unverifySeller = useCallback(
+    async (id: string) => {
+      try {
+        const seller = await sellerService.unverify(id);
+
+        toast.success("Seller verification removed");
+
+        setSellers((prev) =>
+          prev.map((item) => (item._id === seller._id ? seller : item)),
+        );
+
+        return seller;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to unverify seller";
+
+        toast.error(message);
+
+        throw error;
+      }
+    },
+    [],
+  );
+
+  /**
+   * ==========================================
    * Suspend Seller
    * (active -> suspended)
    * ==========================================
@@ -458,6 +489,7 @@ useEffect(() => {
     deleteSeller,
 
     verifySeller,
+    unverifySeller,
     suspendSeller,
     deactivateSeller,
     reactivateSeller,

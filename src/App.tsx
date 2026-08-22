@@ -15,6 +15,7 @@ import SellerDetails from "@/pages/sellers/SellerDetails";
 import SellerForm from "@/pages/sellers/SellerForm";
 import Products from "@/pages/products/Products";
 import ProductForm from "@/pages/products/ProductForm";
+import ProductApprovals from "@/pages/products/ProductApprovals";
 import Banners from "@/pages/marketing/banners/Banners";
 import BannerForm from "@/pages/marketing/banners/BannerForm";
 import CategoryBanners from "@/pages/marketing/category-banners/CategoryBanners";
@@ -63,6 +64,8 @@ export default function App() {
               <Route path="/sellers/:id/edit" element={<SellerForm />} />
 
               <Route path="/products" element={<Products />} />
+
+              <Route path="/products/approvals" element={<ProductApprovals />} />
 
               <Route path="/products/new" element={<ProductForm />} />
 

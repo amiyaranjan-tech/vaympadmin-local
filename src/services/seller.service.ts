@@ -230,6 +230,21 @@ class SellerService {
 
   /**
    * ==========================================
+   * Unverify Seller
+   * (strips the verified badge only — status is untouched; the seller
+   * app's requireActiveSeller already requires isVerified === true for
+   * every write route, so this alone blocks new/edited products)
+   * ==========================================
+   */
+
+  unverify(id: string): Promise<Seller> {
+    return this.updateVerification(id, {
+      isVerified: false,
+    });
+  }
+
+  /**
+   * ==========================================
    * Search Sellers
    * ==========================================
    */
