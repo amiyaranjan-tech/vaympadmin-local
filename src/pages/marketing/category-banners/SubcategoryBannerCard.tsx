@@ -34,6 +34,7 @@ export function SubcategoryBannerCard({
 }) {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const busy = uploading || removing;
 
@@ -82,7 +83,18 @@ export function SubcategoryBannerCard({
         className={cn(
           "relative flex aspect-[3/4] w-full items-center justify-center bg-muted/40",
           busy ? "cursor-not-allowed" : "cursor-pointer",
+          dragging && "ring-2 ring-primary ring-inset",
         )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!busy) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!busy) void handleFile(e.dataTransfer.files);
+        }}
       >
         {banner?.image.url ? (
           <img
@@ -93,7 +105,9 @@ export function SubcategoryBannerCard({
         ) : (
           <div className="flex flex-col items-center gap-1.5 px-3 text-center text-muted-foreground">
             <Upload className="h-5 w-5" />
-            <span className="text-xs font-medium">Upload banner</span>
+            <span className="text-xs font-medium">
+              {dragging ? "Drop to upload" : "Upload or drag & drop"}
+            </span>
           </div>
         )}
 
