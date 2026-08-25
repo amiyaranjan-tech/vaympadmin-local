@@ -5,11 +5,12 @@ interface UploadOptions {
 }
 
 // ponytail: offer banners (BogoOfferForm/TieredDealsForm/SpendThresholdOfferForm)
-// skip Cloudinary for now — reads the file locally and hands back a base64
-// data URI as `url` instead, stored as-is on the Offer document's
-// bannerImage.url (a plain string field, see offer.validation.js). Swap
-// back to uploadImageToCloudinary (cloudinaryUpload.ts — still used by the
-// marketing BannerForm) once offer banners get real image hosting too.
+// and category banners (SubcategoryBannerCard) skip Cloudinary for now —
+// reads the file locally and hands back a base64 data URI as `url` instead,
+// stored as-is on the plain string url fields (Offer.bannerImage.url,
+// CategoryBanner.image.url). Swap back to uploadImageToCloudinary
+// (cloudinaryUpload.ts — still used by the marketing BannerForm) once these
+// get real image hosting too.
 export async function uploadOfferBannerImage(
   file: File,
   { onProgress }: UploadOptions = {},
