@@ -146,6 +146,28 @@ export interface EngagementAnalytics {
 
 /**
  * ==========================================
+ * Per-User Activity (one calendar day)
+ * ==========================================
+ */
+
+export interface UserActivityScreen {
+  screen: string;
+  views: number;
+}
+
+export interface UserActivityEntry {
+  userId: string;
+  name: string;
+  phone: string;
+  sessionsCount: number;
+  totalActiveMs: number;
+  firstSeen: string;
+  lastSeen: string;
+  screensVisited: UserActivityScreen[];
+}
+
+/**
+ * ==========================================
  * API Error
  * ==========================================
  */

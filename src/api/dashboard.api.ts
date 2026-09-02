@@ -4,6 +4,7 @@ import type {
   DashboardApiResponse,
   DashboardStats,
   EngagementAnalytics,
+  UserActivityEntry,
 } from "@/types/dashboard";
 
 /**
@@ -35,6 +36,22 @@ const dashboardApi = {
   }): Promise<DashboardApiResponse<EngagementAnalytics>> => {
     const response = await api.get<DashboardApiResponse<EngagementAnalytics>>(
       "/dashboard/engagement",
+      { params },
+    );
+
+    return response.data;
+  },
+
+  /**
+   * ==========================================
+   * Get Per-User Activity For A Day
+   * ==========================================
+   */
+  getUserActivity: async (params?: {
+    date?: string;
+  }): Promise<DashboardApiResponse<UserActivityEntry[]>> => {
+    const response = await api.get<DashboardApiResponse<UserActivityEntry[]>>(
+      "/dashboard/users/activity",
       { params },
     );
 

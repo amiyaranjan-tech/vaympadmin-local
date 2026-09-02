@@ -6,6 +6,10 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
 import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { StatCardRowSkeleton } from "@/components/common/Skeletons";
 import { revenueSeries, categorySales, dailyOrders, sellers, products, CATEGORIES_LIST } from "@/data/mock";
 import {
@@ -14,6 +18,13 @@ import {
 } from "recharts";
 import { formatCurrency } from "@/utils/format";
 import useEngagementAnalytics from "@/hooks/useEngagementAnalytics";
+import useUserActivity from "@/hooks/useUserActivity";
+
+function todayIso() {
+  const now = new Date();
+  const tz = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - tz).toISOString().slice(0, 10);
+}
 
 const COLORS = ["var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-chart-4)", "var(--color-chart-5)", "var(--color-primary)"];
 
@@ -30,6 +41,9 @@ export default function Analytics() {
   const { data: engagement, loading: engagementLoading } = useEngagementAnalytics(
     range?.from ? { from: range.from.toISOString(), to: range.to?.toISOString() } : undefined,
   );
+
+  const [activityDate, setActivityDate] = useState(todayIso());
+  const { data: userActivity, loading: userActivityLoading } = useUserActivity(activityDate);
 
   const topBrands = Object.entries(products.reduce<Record<string, number>>((a, p) => { a[p.brand] = (a[p.brand] ?? 0) + p.sold; return a; }, {}))
     .map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 6);
@@ -119,6 +133,77 @@ export default function Analytics() {
           </div>
         )}
       </div>
+
+      <Card className="rounded-2xl p-6 shadow-soft">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold">User activity</div>
+            <div className="text-xs text-muted-foreground">
+              Every user active on the app that day, their total active time, and the screens they visited.
+            </div>
+          </div>
+
+          <input
+            type="date"
+            value={activityDate}
+            max={todayIso()}
+            onChange={(e) => setActivityDate(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          />
+        </div>
+
+        {userActivityLoading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+        ) : !userActivity || userActivity.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            No user activity on this day.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Sessions</TableHead>
+                <TableHead>Active time</TableHead>
+                <TableHead>First seen</TableHead>
+                <TableHead>Last seen</TableHead>
+                <TableHead>Screens visited</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {userActivity.map((u) => (
+                <TableRow key={u.userId}>
+                  <TableCell>
+                    <div className="font-medium">{u.name}</div>
+                    <div className="text-xs text-muted-foreground">{u.phone}</div>
+                  </TableCell>
+                  <TableCell>{u.sessionsCount}</TableCell>
+                  <TableCell>{formatDuration(u.totalActiveMs)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(u.firstSeen).toLocaleTimeString()}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(u.lastSeen).toLocaleTimeString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {u.screensVisited.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        u.screensVisited.map((s) => (
+                          <Badge key={s.screen} variant="secondary" className="font-normal">
+                            {s.screen} · {s.views}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
 
       <div className="mb-1 text-sm font-semibold text-muted-foreground">
         Sales overview (demo data — connects once the Orders module ships)
