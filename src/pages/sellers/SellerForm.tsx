@@ -215,10 +215,6 @@ const onSubmit = async (values: SellerFormValues) => {
               <input type="file" className="hidden" disabled />
             </label>
           </div>
-
-          <div className="mt-6 rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-            Image upload will be connected after Cloudinary integration.
-          </div>
         </Card>
 
         <div className="flex justify-end gap-3 lg:col-span-3">

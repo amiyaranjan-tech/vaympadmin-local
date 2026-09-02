@@ -4,14 +4,13 @@ interface UploadOptions {
   onProgress?: (percent: number) => void;
 }
 
-// ponytail: offer banners (BogoOfferForm/TieredDealsForm/SpendThresholdOfferForm)
-// and category banners (SubcategoryBannerCard) skip Cloudinary for now —
-// reads the file locally and hands back a base64 data URI as `url` instead,
-// stored as-is on the plain string url fields (Offer.bannerImage.url,
-// CategoryBanner.image.url). Swap back to uploadImageToCloudinary
-// (cloudinaryUpload.ts — still used by the marketing BannerForm) once these
-// get real image hosting too.
-export async function uploadOfferBannerImage(
+// ponytail: every admin image upload (offer/category banners, marketing
+// banners, product images, seller images) skips Cloudinary for now — reads
+// the file locally and hands back a base64 data URI as `url` instead,
+// stored as-is on the plain string url fields. Swap back to
+// uploadImageToCloudinary (cloudinaryUpload.ts) once real image hosting is
+// wanted again.
+export async function uploadImageLocally(
   file: File,
   { onProgress }: UploadOptions = {},
 ): Promise<UploadedImage> {

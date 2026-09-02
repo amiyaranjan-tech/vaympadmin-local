@@ -29,7 +29,7 @@ import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import type { BannerImage } from "@/types/banner";
 
-import { uploadImageToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadImageLocally } from "@/utils/localImageUpload";
 
 import { bannerSchema, BannerFormValues as Form } from "./banner.schema";
 import { createBannerPayload, updateBannerPayload } from "./banner.mapper";
@@ -58,7 +58,7 @@ const STEPS = [
  * Image Upload State
  * ==========================================
  * `image` is the only value that ever gets submitted — it's set once,
- * atomically, from either an edit-mode load or a *successful* Cloudinary
+ * atomically, from either an edit-mode load or a *successful* local
  * upload. `previewUrl` is purely visual (a local blob URL while a real
  * upload is in flight); it never leaks into the submit payload.
  */
@@ -90,6 +90,7 @@ export default function BannerForm() {
   const [step, setStep] = useState(0);
   const [imageState, setImageState] = useState<ImageUploadState>(EMPTY_IMAGE_STATE);
   const [thumbnailState, setThumbnailState] = useState<ImageUploadState>(EMPTY_IMAGE_STATE);
+  const [draggingKind, setDraggingKind] = useState<"image" | "thumbnail" | null>(null);
   const [targetSearch, setTargetSearch] = useState("");
 
   const form = useForm<Form>({
@@ -318,8 +319,7 @@ export default function BannerForm() {
     }));
 
     try {
-      const uploaded = await uploadImageToCloudinary(file, {
-        folder: `vaymp/banners/${kind}`,
+      const uploaded = await uploadImageLocally(file, {
         onProgress: (progress) => setState((prev) => ({ ...prev, progress })),
       });
 
@@ -457,7 +457,20 @@ export default function BannerForm() {
                         imageState.status === "uploading"
                           ? "cursor-not-allowed opacity-60"
                           : "cursor-pointer",
+                        draggingKind === "image" && "ring-2 ring-primary ring-inset",
                       )}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (imageState.status !== "uploading") setDraggingKind("image");
+                      }}
+                      onDragLeave={() => setDraggingKind(null)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDraggingKind(null);
+                        if (imageState.status !== "uploading") {
+                          void handleImageFile(e.dataTransfer.files, "image");
+                        }
+                      }}
                     >
                       {imageState.status === "uploading" ? (
                         <Loader2 className="mb-2 h-6 w-6 animate-spin text-primary" />
@@ -467,12 +480,14 @@ export default function BannerForm() {
                       <div className="text-sm font-medium">
                         {imageState.status === "uploading"
                           ? `Uploading… ${imageState.progress}%`
-                          : imageState.image.url
-                            ? "Replace image"
-                            : "Upload image"}
+                          : draggingKind === "image"
+                            ? "Drop to upload"
+                            : imageState.image.url
+                              ? "Replace image"
+                              : "Upload image"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Recommended 3:2 or 16:9
+                        Drag & drop or click — recommended 3:2 or 16:9
                       </div>
                       <input
                         type="file"
@@ -515,7 +530,20 @@ export default function BannerForm() {
                         thumbnailState.status === "uploading"
                           ? "cursor-not-allowed opacity-60"
                           : "cursor-pointer",
+                        draggingKind === "thumbnail" && "ring-2 ring-primary ring-inset",
                       )}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (thumbnailState.status !== "uploading") setDraggingKind("thumbnail");
+                      }}
+                      onDragLeave={() => setDraggingKind(null)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDraggingKind(null);
+                        if (thumbnailState.status !== "uploading") {
+                          void handleImageFile(e.dataTransfer.files, "thumbnail");
+                        }
+                      }}
                     >
                       {thumbnailState.status === "uploading" ? (
                         <Loader2 className="mb-2 h-5 w-5 animate-spin text-primary" />
@@ -525,7 +553,9 @@ export default function BannerForm() {
                       <div className="text-xs font-medium">
                         {thumbnailState.status === "uploading"
                           ? `Uploading… ${thumbnailState.progress}%`
-                          : "Upload thumbnail"}
+                          : draggingKind === "thumbnail"
+                            ? "Drop to upload"
+                            : "Upload thumbnail"}
                       </div>
                       <input
                         type="file"

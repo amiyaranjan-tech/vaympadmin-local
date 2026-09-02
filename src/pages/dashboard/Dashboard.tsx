@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Send,
   Clock,
+  Activity,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { StatCardRowSkeleton, CardSkeleton } from "@/components/common/Skeletons";
 
 import useDashboard from "@/hooks/useDashboard";
+import useEngagementAnalytics from "@/hooks/useEngagementAnalytics";
 
 import { formatCurrency, formatNumber, formatDate } from "@/utils/format";
 
@@ -32,6 +34,14 @@ const PLACEHOLDER_PRODUCT =
 export default function Dashboard() {
   const navigate = useNavigate();
   const { stats, loading, error } = useDashboard();
+
+  // Daily active users — closed-testing needs a same-day count, not the
+  // Analytics page's 7-day default (see dashboard.service.js#getEngagement,
+  // already computes uniqueUsers for whatever range it's given).
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { data: todayEngagement, loading: todayEngagementLoading } =
+    useEngagementAnalytics({ from: todayStart.toISOString() });
 
   const quickActions = [
     { label: "Add Seller", icon: Store, to: "/sellers/new" },
@@ -152,6 +162,17 @@ export default function Dashboard() {
           }
           icon={Package}
           tint="secondary"
+        />
+
+        <StatCard
+          label="Active Users Today"
+          value={
+            todayEngagementLoading
+              ? "…"
+              : formatNumber(todayEngagement?.uniqueUsers ?? 0)
+          }
+          icon={Activity}
+          tint="success"
         />
       </div>
 

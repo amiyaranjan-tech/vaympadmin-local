@@ -21,7 +21,7 @@ import type { OfferScope } from "@/types/offer";
 import { ShopProductSelector } from "@/components/deals/ShopProductSelector";
 import { TargetPicker } from "@/pages/marketing/banners/TargetPicker";
 
-import { uploadOfferBannerImage } from "@/utils/localImageUpload";
+import { uploadImageLocally } from "@/utils/localImageUpload";
 
 import { tierOfferSchema, TierOfferFormValues as Form } from "./offer.schema";
 import { buildTierOfferPayload } from "./offer.mapper";
@@ -174,7 +174,7 @@ export default function SpendThresholdOfferForm() {
   const handleShopBannerFile = async (index: number, file: File) => {
     try {
       setUploadingShopBannerIndex(index);
-      const uploaded = await uploadOfferBannerImage(file);
+      const uploaded = await uploadImageLocally(file);
       const next = [...form.getValues("shopBanners")];
       next[index] = { ...uploaded, caption: next[index]?.caption ?? "" };
       form.setValue("shopBanners", next, { shouldValidate: true });

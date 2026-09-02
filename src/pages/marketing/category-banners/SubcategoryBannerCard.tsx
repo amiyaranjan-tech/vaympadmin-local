@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import categoryBannerService from "@/services/categoryBanner.service";
-import { uploadOfferBannerImage } from "@/utils/localImageUpload";
+import { uploadImageLocally } from "@/utils/localImageUpload";
 
 import type { CategoryBanner, CategoryBannerGender } from "@/types/categoryBanner";
 
@@ -15,7 +15,7 @@ import type { CategoryBanner, CategoryBannerGender } from "@/types/categoryBanne
 // (label+hidden input) but compact and self-contained: uploading here saves
 // immediately (upsert), there's no separate form/Save step per card, since
 // every card here already IS one complete record
-// (gender+category+subcategory -> image). Uses uploadOfferBannerImage
+// (gender+category+subcategory -> image). Uses uploadImageLocally
 // (base64 data URI, no Cloudinary) — see localImageUpload.ts.
 export function SubcategoryBannerCard({
   gender,
@@ -45,7 +45,7 @@ export function SubcategoryBannerCard({
     setUploading(true);
 
     try {
-      const image = await uploadOfferBannerImage(file);
+      const image = await uploadImageLocally(file);
 
       const saved = await categoryBannerService.upsert({
         gender,

@@ -28,6 +28,7 @@ import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
+import { uploadImageLocally } from "@/utils/localImageUpload";
 import type { DropdownOptions } from "@/types/option";
 import type { ProductImage } from "@/types/product";
 
@@ -123,6 +124,8 @@ export default function ProductForm() {
   const [loadingProduct, setLoadingProduct] = useState(isEdit);
   const [step, setStep] = useState(0);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [draggingImages, setDraggingImages] = useState(false);
 
   const form = useForm<Form>({
     resolver: zodResolver(productSchema),
@@ -294,14 +297,22 @@ export default function ProductForm() {
     form.setValue("attributes", { ...attributes, [key]: value });
   };
 
-  const handleFile = (files: FileList | null) => {
-    if (!files) return;
-    const previews = Array.from(files).map((file) => ({
-      url: URL.createObjectURL(file),
-      publicId: "",
-    }));
-    setImages((prev) => [...prev, ...previews]);
-    toast.success(`${files.length} image(s) added`);
+  const handleFile = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+
+    try {
+      const uploaded = await Promise.all(
+        Array.from(files).map((file) => uploadImageLocally(file)),
+      );
+      setImages((prev) => [...prev, ...uploaded]);
+      toast.success(`${uploaded.length} image(s) added`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Image upload failed");
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   if (loadingProduct) {
@@ -722,18 +733,45 @@ export default function ProductForm() {
               )}
               {step === 5 && (
                 <div className="space-y-4">
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-10 hover:bg-muted/40">
-                    <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
-                    <div className="text-sm font-medium">Upload images</div>
+                  <label
+                    className={cn(
+                      "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-10 hover:bg-muted/40",
+                      uploadingImages ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                      draggingImages && "ring-2 ring-primary ring-inset",
+                    )}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!uploadingImages) setDraggingImages(true);
+                    }}
+                    onDragLeave={() => setDraggingImages(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDraggingImages(false);
+                      if (!uploadingImages) void handleFile(e.dataTransfer.files);
+                    }}
+                  >
+                    {uploadingImages ? (
+                      <Loader2 className="mb-2 h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
+                    )}
+                    <div className="text-sm font-medium">
+                      {uploadingImages
+                        ? "Uploading…"
+                        : draggingImages
+                          ? "Drop to upload"
+                          : "Upload images"}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      Multiple files supported
+                      Drag & drop or click — multiple files supported
                     </div>
                     <input
                       type="file"
                       multiple
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => handleFile(e.target.files)}
+                      disabled={uploadingImages}
+                      onChange={(e) => void handleFile(e.target.files)}
                     />
                   </label>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -746,12 +784,18 @@ export default function ProductForm() {
                           src={image.url}
                           className="h-full w-full object-cover"
                         />
+                        <button
+                          type="button"
+                          className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                          onClick={() =>
+                            setImages((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          <span className="sr-only">Remove</span>
+                          ×
+                        </button>
                       </div>
                     ))}
-                  </div>
-                  <div className="rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-                    Image upload will be connected after Cloudinary
-                    integration.
                   </div>
                   <div className="space-y-2">
                     <Label>Video URL (optional)</Label>
