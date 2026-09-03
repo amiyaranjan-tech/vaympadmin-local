@@ -30,6 +30,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import useAuth from "@/hooks/useAuth";
+import useNotifications from "@/hooks/useNotifications";
 import { MobileSidebar } from "./Sidebar";
 
 import { toast } from "sonner";
@@ -56,6 +57,11 @@ interface SearchItem {
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const { admin, logout } = useAuth();
+  const {
+    items: inboxItems,
+    unreadCount,
+    markRead: markInboxRead,
+  } = useNotifications();
 
   const navigate = useNavigate();
 
@@ -225,7 +231,9 @@ export function Topbar() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative rounded-xl">
             <Bell className="h-4 w-4" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+            {unreadCount > 0 && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+            )}
           </Button>
         </DropdownMenuTrigger>
 
@@ -234,19 +242,29 @@ export function Topbar() {
 
           <DropdownMenuSeparator />
 
-          {notifications.slice(0, 5).map((notification) => (
-            <DropdownMenuItem
-              key={notification.id}
-              onSelect={() => navigate("/notifications")}
-              className="flex-col items-start gap-1 py-2"
-            >
-              <div className="text-sm font-medium">{notification.title}</div>
+          {inboxItems.length === 0 ? (
+            <div className="px-2 py-3 text-xs text-muted-foreground">Nothing yet</div>
+          ) : (
+            inboxItems.slice(0, 5).map((notification) => (
+              <DropdownMenuItem
+                key={notification._id}
+                onSelect={() => {
+                  if (!notification.readAt) void markInboxRead(notification._id);
+                  navigate("/notifications");
+                }}
+                className="flex-col items-start gap-1 py-2"
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  {!notification.readAt && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                  {notification.title}
+                </div>
 
-              <div className="text-xs text-muted-foreground">
-                {notification.message}
-              </div>
-            </DropdownMenuItem>
-          ))}
+                <div className="text-xs text-muted-foreground">{notification.body}</div>
+              </DropdownMenuItem>
+            ))
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <DropdownMenu>
