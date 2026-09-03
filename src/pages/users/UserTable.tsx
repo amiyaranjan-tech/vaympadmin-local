@@ -1,4 +1,5 @@
-import { Eye } from "lucide-react";
+import { Copy, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,10 @@ import { formatDate } from "@/utils/format";
 
 import { UserTableProps } from "./types";
 
+function copyUserId(id: string) {
+  void navigator.clipboard.writeText(id).then(() => toast.success("User ID copied"));
+}
+
 export function UserTable({ users, onView, loading }: UserTableProps & { loading?: boolean }) {
   return (
     <Card className="overflow-hidden rounded-2xl shadow-soft">
@@ -18,6 +23,8 @@ export function UserTable({ users, onView, loading }: UserTableProps & { loading
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
               <th className="px-4 py-3 text-left font-medium">User</th>
+
+              <th className="px-4 py-3 text-left font-medium">User ID</th>
 
               <th className="px-4 py-3 text-left font-medium">Phone</th>
 
@@ -35,11 +42,11 @@ export function UserTable({ users, onView, loading }: UserTableProps & { loading
 
           <tbody>
             {loading ? (
-              <TableRowSkeleton rows={6} cols={7} />
+              <TableRowSkeleton rows={6} cols={8} />
             ) : users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="py-10 text-center text-sm text-muted-foreground"
                 >
                   No users found.
@@ -72,6 +79,17 @@ export function UserTable({ users, onView, loading }: UserTableProps & { loading
                           </div>
                         </div>
                       </div>
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => copyUserId(user._id)}
+                        className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
+                        title="Copy user ID"
+                      >
+                        {user._id}
+                        <Copy className="h-3 w-3 shrink-0" />
+                      </button>
                     </td>
 
                     <td className="px-4 py-3">{user.phone}</td>
