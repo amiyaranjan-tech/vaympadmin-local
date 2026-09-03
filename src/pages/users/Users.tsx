@@ -5,46 +5,56 @@ import useUsers from "@/hooks/useUsers";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 import { UserSearch } from "./UserSearch";
 import { UserTable } from "./UserTable";
 import { UserDetailsSheet } from "./UserDetailsSheet";
 
-import type { User } from "@/types/user";
+import type { User, UserQueryParams } from "@/types/user";
 
 export default function Users() {
+  const [page, setPage] = useState(1);
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [isVerified, setIsVerified] = useState("all");
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const { users, total, loading, error, fetchUsers } = useUsers();
+  // Any filter change should jump back to page 1 — adjusted during render
+  // (not in an effect) to avoid the extra commit a setState-in-effect would
+  // cause, same pattern Banners.tsx already uses.
+  const filterKey = `${search}|${status}|${isVerified}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const { users, total, totalPages, loading, error, fetchUsers } = useUsers();
+
+  const queryParams = useMemo<UserQueryParams>(() => {
+    const params: UserQueryParams = { page };
+
+    if (search.trim()) params.search = search.trim();
+    if (status !== "all") params.status = status as UserQueryParams["status"];
+    if (isVerified !== "all") params.isVerified = isVerified === "yes";
+
+    return params;
+  }, [page, search, status, isVerified]);
 
   useEffect(() => {
-    void fetchUsers(
-      {
-        status: status === "all" ? undefined : (status as User["status"]),
-        isVerified: isVerified === "all" ? undefined : isVerified === "yes",
-      },
-      false,
-    );
-  }, [status, isVerified, fetchUsers]);
-
-  const filteredUsers = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    if (!keyword) {
-      return users;
-    }
-
-    return users.filter((user) =>
-      [user.name, user.email, user.phone]
-        .join(" ")
-        .toLowerCase()
-        .includes(keyword),
-    );
-  }, [search, users]);
+    void fetchUsers(queryParams, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryParams]);
 
   if (error) {
     return (
@@ -69,7 +79,7 @@ export default function Users() {
     <div className="space-y-6">
       <PageHeader
         title="Users"
-        description={`${filteredUsers.length} of ${total} shoppers on Vaymp`}
+        description={`${users.length} of ${total} shoppers on Vaymp`}
       />
 
       <UserSearch
@@ -81,7 +91,41 @@ export default function Users() {
         onVerifiedChange={setIsVerified}
       />
 
-      <UserTable users={filteredUsers} onView={setSelectedUser} loading={loading} />
+      <UserTable users={users} onView={setSelectedUser} loading={loading} />
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page > 1) setPage(page - 1);
+                }}
+                className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+
+            <PaginationItem>
+              <span className="px-4 text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+            </PaginationItem>
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page < totalPages) setPage(page + 1);
+                }}
+                className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <UserDetailsSheet
         open={!!selectedUser}
