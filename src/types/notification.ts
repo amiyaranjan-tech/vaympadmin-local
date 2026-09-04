@@ -98,8 +98,8 @@ export interface CreateBroadcastPayload {
 // analytics.ts's own MAX_BATCH_SIZE comment on the mobile side.
 export const BROADCAST_TYPES = [
   "NEW_DEAL",
+  "NEW_SHOP_ONBOARDED",
   "COUPON_AVAILABLE",
-  "BOOKMARKED_SHOP_UPDATE",
   "DEAL_ENDING_SOON",
   "MARKETING_CAMPAIGN",
   "GENERAL_ANNOUNCEMENT",
