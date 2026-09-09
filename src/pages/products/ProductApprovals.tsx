@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, ClipboardCheck, Eye, PackageCheck, Rocket } from "lucide-react";
+import { ClipboardCheck, Eye, Rocket, X } from "lucide-react";
 
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -9,12 +9,16 @@ import { CardGridSkeleton } from "@/components/common/Skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
@@ -31,9 +35,8 @@ const SELLERS_LIST_PARAMS = { limit: 100 };
 interface ApprovalRowProps {
   product: Product;
   shopName: string;
-  actionLabel: string;
-  actionIcon: typeof Check;
-  onAction: (id: string) => void;
+  onApproveAndPublish: (id: string) => void;
+  onReject: (product: Product) => void;
   onView: (product: Product) => void;
   pending: boolean;
 }
@@ -41,9 +44,8 @@ interface ApprovalRowProps {
 function ApprovalRow({
   product,
   shopName,
-  actionLabel,
-  actionIcon: ActionIcon,
-  onAction,
+  onApproveAndPublish,
+  onReject,
   onView,
   pending,
 }: ApprovalRowProps) {
@@ -80,13 +82,24 @@ function ApprovalRow({
         </Button>
 
         <Button
+          variant="outline"
+          size="sm"
+          className="rounded-lg text-destructive hover:text-destructive"
+          disabled={pending}
+          onClick={() => onReject(product)}
+        >
+          <X className="mr-2 h-4 w-4" />
+          Reject
+        </Button>
+
+        <Button
           size="sm"
           className="rounded-lg"
           disabled={pending}
-          onClick={() => onAction(product._id)}
+          onClick={() => onApproveAndPublish(product._id)}
         >
-          <ActionIcon className="mr-2 h-4 w-4" />
-          {actionLabel}
+          <Rocket className="mr-2 h-4 w-4" />
+          Approve &amp; Publish
         </Button>
       </div>
     </Card>
@@ -98,8 +111,10 @@ export default function ProductApprovals() {
   const [openDetails, setOpenDetails] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  const [rejectTarget, setRejectTarget] = useState<Product | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
   const pendingReview = useProducts({ status: "pending_review", limit: 100 });
-  const approved = useProducts({ status: "approved", limit: 100 });
   const { sellers } = useSellers(SELLERS_LIST_PARAMS);
 
   const shopName = (sellerId: string | null) =>
@@ -110,45 +125,39 @@ export default function ProductApprovals() {
     setOpenDetails(true);
   };
 
-  const handleApprove = async (id: string) => {
+  // One admin action, two backend calls — the "approved" status is
+  // transient here, never surfaced as its own queue (see productStatus.ts).
+  const handleApproveAndPublish = async (id: string) => {
     setProcessingId(id);
 
     try {
       await pendingReview.updateStatus(id, "approved");
+      await pendingReview.updateStatus(id, "published");
       await pendingReview.refresh();
-      await approved.refresh();
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handlePublish = async (id: string) => {
-    setProcessingId(id);
-
-    try {
-      await approved.updateStatus(id, "published");
-      await approved.refresh();
-    } finally {
-      setProcessingId(null);
-    }
+  const openRejectDialog = (product: Product) => {
+    setRejectTarget(product);
+    setRejectReason("");
   };
 
-  // The details sheet's own "Move to..." selector (driven by
-  // STATUS_TRANSITIONS) already covers reject/send-back-to-draft — no
-  // need to duplicate that here, just refresh whichever queue the
-  // product just left.
-  const handleSheetStatusChange = async (id: string, status: string) => {
-    setProcessingId(id);
+  // The backend requires a rejectionReason on this transition (it gets
+  // surfaced to the seller via a product_rejected notification — see
+  // services/product.service.js#updateStatus), so Reject always goes
+  // through this dialog rather than firing immediately.
+  const confirmReject = async () => {
+    if (!rejectTarget || !rejectReason.trim()) return;
+
+    setProcessingId(rejectTarget._id);
 
     try {
-      const updated =
-        selectedProduct?.status === "pending_review"
-          ? await pendingReview.updateStatus(id, status as never)
-          : await approved.updateStatus(id, status as never);
-
-      setSelectedProduct(updated);
+      await pendingReview.updateStatus(rejectTarget._id, "rejected", rejectReason.trim());
       await pendingReview.refresh();
-      await approved.refresh();
+      setRejectTarget(null);
+      setRejectReason("");
     } finally {
       setProcessingId(null);
     }
@@ -166,84 +175,72 @@ export default function ProductApprovals() {
         }
       />
 
-      <Tabs defaultValue="pending">
-        <TabsList>
-          <TabsTrigger value="pending">
-            Pending Review
-            {pendingReview.total > 0 && (
-              <Badge className="ml-2" variant="secondary">
-                {pendingReview.total}
-              </Badge>
-            )}
-          </TabsTrigger>
-
-          <TabsTrigger value="approved">
-            Ready to Publish
-            {approved.total > 0 && (
-              <Badge className="ml-2" variant="secondary">
-                {approved.total}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pending" className="mt-4 space-y-3">
-          {pendingReview.loading ? (
-            <CardGridSkeleton count={3} className="space-y-3" />
-          ) : pendingReview.products.length === 0 ? (
-            <EmptyState
-              icon={ClipboardCheck}
-              title="Nothing waiting for review"
-              description="Products a seller submits for review will show up here."
+      <div className="space-y-3">
+        {pendingReview.loading ? (
+          <CardGridSkeleton count={3} className="space-y-3" />
+        ) : pendingReview.products.length === 0 ? (
+          <EmptyState
+            icon={ClipboardCheck}
+            title="Nothing waiting for review"
+            description="Products a seller submits for review will show up here."
+          />
+        ) : (
+          pendingReview.products.map((product) => (
+            <ApprovalRow
+              key={product._id}
+              product={product}
+              shopName={shopName(product.seller)}
+              onApproveAndPublish={handleApproveAndPublish}
+              onReject={openRejectDialog}
+              onView={handleView}
+              pending={processingId === product._id}
             />
-          ) : (
-            pendingReview.products.map((product) => (
-              <ApprovalRow
-                key={product._id}
-                product={product}
-                shopName={shopName(product.seller)}
-                actionLabel="Approve"
-                actionIcon={Check}
-                onAction={handleApprove}
-                onView={handleView}
-                pending={processingId === product._id}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="approved" className="mt-4 space-y-3">
-          {approved.loading ? (
-            <CardGridSkeleton count={3} className="space-y-3" />
-          ) : approved.products.length === 0 ? (
-            <EmptyState
-              icon={PackageCheck}
-              title="Nothing waiting to publish"
-              description="Products you approve will show up here until they're published."
-            />
-          ) : (
-            approved.products.map((product) => (
-              <ApprovalRow
-                key={product._id}
-                product={product}
-                shopName={shopName(product.seller)}
-                actionLabel="Publish"
-                actionIcon={Rocket}
-                onAction={handlePublish}
-                onView={handleView}
-                pending={processingId === product._id}
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+          ))
+        )}
+      </div>
 
       <ProductDetailsSheet
         open={openDetails}
         onOpenChange={setOpenDetails}
         product={selectedProduct}
-        onStatusChange={handleSheetStatusChange}
       />
+
+      <Dialog open={!!rejectTarget} onOpenChange={(open) => !open && setRejectTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reject "{rejectTarget?.name}"</DialogTitle>
+            <DialogDescription>
+              This is sent to the seller as a notification so they know what to fix before
+              resubmitting.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label>Reason</Label>
+            <Textarea
+              rows={4}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Product images are blurry, please re-upload clearer photos."
+              autoFocus
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setRejectTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-xl"
+              disabled={!rejectReason.trim() || processingId === rejectTarget?._id}
+              onClick={confirmReject}
+            >
+              Reject product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

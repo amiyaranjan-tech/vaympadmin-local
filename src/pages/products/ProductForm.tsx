@@ -654,7 +654,6 @@ export default function ProductForm() {
                         ["isTrending", "Trending"],
                         ["isNewArrival", "New Arrival"],
                         ["isLimitedStock", "Limited Stock"],
-                        ["isBogo", "Buy One Get One"],
                       ] as const
                     ).map(([k, l]) => (
                       <label

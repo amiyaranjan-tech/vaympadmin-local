@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import useNotificationBroadcasts from "@/hooks/useNotificationBroadcasts";
 import useNotifications from "@/hooks/useNotifications";
+import { resolveNotificationRoute } from "@/lib/notificationNavigation";
 import { BROADCAST_TYPES } from "@/types/notification";
 import type { AudienceType } from "@/types/notification";
 
@@ -36,6 +39,7 @@ const STATUS_VARIANT: Record<string, "default" | "outline" | "secondary" | "dest
 };
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const { items, loading, sending, send } = useNotificationBroadcasts();
   const {
     items: alerts,
@@ -221,7 +225,10 @@ export default function Notifications() {
             {alerts.map((alert) => (
               <button
                 key={alert._id}
-                onClick={() => !alert.readAt && void markAlertRead(alert._id)}
+                onClick={() => {
+                  if (!alert.readAt) void markAlertRead(alert._id);
+                  navigate(resolveNotificationRoute(alert));
+                }}
                 className={`rounded-xl border p-3 text-left text-sm ${
                   alert.readAt ? "border-border/60" : "border-primary/40 bg-primary/5"
                 }`}

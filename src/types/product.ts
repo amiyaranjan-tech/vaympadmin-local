@@ -146,6 +146,9 @@ export interface Product {
   video: string;
 
   status: ProductStatus;
+  // Set when status is/was "rejected" — the reason the admin gave, shown
+  // back to the seller via a notification.
+  rejectionReason?: string;
   isDeleted: boolean;
 
   createdAt: string;
@@ -235,6 +238,9 @@ export type UpdateProductRequest = Partial<CreateProductRequest>;
 
 export interface ProductStatusRequest {
   status: ProductStatus;
+  // Required by the backend when status is "rejected" — surfaced back to
+  // the seller via a notification.
+  rejectionReason?: string;
 }
 
 /**

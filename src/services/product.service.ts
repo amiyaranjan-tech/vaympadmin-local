@@ -91,9 +91,14 @@ class ProductService {
    * ==========================================
    */
 
-  async updateStatus(id: string, status: ProductStatus): Promise<Product> {
+  async updateStatus(
+    id: string,
+    status: ProductStatus,
+    rejectionReason?: string,
+  ): Promise<Product> {
     const response = await productApi.updateStatus(id, {
       status,
+      rejectionReason,
     });
 
     return this.handleResponse(response);

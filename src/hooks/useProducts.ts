@@ -183,9 +183,9 @@ export default function useProducts(initialParams?: ProductQueryParams) {
    */
 
   const updateStatus = useCallback(
-    async (id: string, status: ProductStatus) => {
+    async (id: string, status: ProductStatus, rejectionReason?: string) => {
       try {
-        const product = await productService.updateStatus(id, status);
+        const product = await productService.updateStatus(id, status, rejectionReason);
 
         toast.success("Product status updated");
 

@@ -21,7 +21,7 @@ const passwordSchema = z.object({
   next: z.string().min(6, "Min 6 chars"),
   confirm: z.string().min(6),
 }).refine((v) => v.next === v.confirm, { path: ["confirm"], message: "Passwords do not match" });
-const bizSchema = z.object({ companyName: z.string().min(2), supportEmail: z.string().email(), commissionRate: z.coerce.number().min(0).max(100), address: z.string().min(3) });
+const bizSchema = z.object({ companyName: z.string().min(2), supportEmail: z.string().email(), commissionRate: z.coerce.number().min(0).max(100), priceMarginPercent: z.coerce.number().min(0).max(100), address: z.string().min(3) });
 
 export default function Settings() {
   const { admin } = useAuth();
@@ -30,7 +30,7 @@ export default function Settings() {
 
   const pForm = useForm<z.infer<typeof profileSchema>>({ resolver: zodResolver(profileSchema), defaultValues: { name: admin?.username ?? "", email: admin?.email ?? "" } });
   const pwForm = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { current: "", next: "", confirm: "" } });
-  const bForm = useForm<z.infer<typeof bizSchema>>({ resolver: zodResolver(bizSchema), defaultValues: { companyName: "Vaymp", supportEmail: "", commissionRate: 10, address: "" } });
+  const bForm = useForm<z.infer<typeof bizSchema>>({ resolver: zodResolver(bizSchema), defaultValues: { companyName: "Vaymp", supportEmail: "", commissionRate: 10, priceMarginPercent: 5, address: "" } });
 
   useEffect(() => {
     if (settings) {
@@ -38,6 +38,7 @@ export default function Settings() {
         companyName: settings.companyName,
         supportEmail: settings.supportEmail,
         commissionRate: settings.commissionRate,
+        priceMarginPercent: settings.priceMarginPercent,
         address: settings.address,
       });
     }
@@ -107,6 +108,16 @@ export default function Settings() {
                 <Input type="number" {...bForm.register("commissionRate")} />
                 <p className="text-xs text-muted-foreground">
                   Applied to any seller without their own commission rate override.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Seller price margin %</Label>
+                <Input type="number" {...bForm.register("priceMarginPercent")} />
+                <p className="text-xs text-muted-foreground">
+                  Sellers submit a Total Price and a Discounted Price (their real payout). Buyers
+                  see a discount this many percentage points lower than the seller's own — e.g. a
+                  seller's real 55% discount shows as 50% off when this is 5. The gap between what
+                  buyers pay and what the seller is paid is Vaymp's margin, on top of commission.
                 </p>
               </div>
               <div className="space-y-2 md:col-span-2"><Label>Address</Label><Textarea rows={3} {...bForm.register("address")} /></div>

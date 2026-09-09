@@ -31,6 +31,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useTheme } from "@/contexts/ThemeContext";
 import useAuth from "@/hooks/useAuth";
 import useNotifications from "@/hooks/useNotifications";
+import { resolveNotificationRoute } from "@/lib/notificationNavigation";
 import { MobileSidebar } from "./Sidebar";
 
 import { toast } from "sonner";
@@ -250,7 +251,7 @@ export function Topbar() {
                 key={notification._id}
                 onSelect={() => {
                   if (!notification.readAt) void markInboxRead(notification._id);
-                  navigate("/notifications");
+                  navigate(resolveNotificationRoute(notification));
                 }}
                 className="flex-col items-start gap-1 py-2"
               >
