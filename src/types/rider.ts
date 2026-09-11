@@ -76,6 +76,9 @@ export interface Rider {
     orderNumber: string;
   } | null;
 
+  // Lifetime count of orders this rider has marked Delivered.
+  totalDeliveries?: number;
+
   verifiedAt?: string | null;
   verifiedBy?: AdminRef;
 

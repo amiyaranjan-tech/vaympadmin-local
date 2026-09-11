@@ -7,6 +7,7 @@ import {
   Mail,
   MoreHorizontal,
   Navigation,
+  Package,
   Phone,
   Plus,
   Search,
@@ -339,6 +340,14 @@ export default function Riders() {
                     <div className="flex items-center gap-2">
                       <Phone className="h-3.5 w-3.5 shrink-0" />
                       <span>{rider.phone}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Package className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {rider.totalDeliveries ?? 0} deliver
+                        {rider.totalDeliveries === 1 ? "y" : "ies"} completed
+                      </span>
                     </div>
                   </div>
 
