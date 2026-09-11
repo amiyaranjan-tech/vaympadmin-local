@@ -60,6 +60,22 @@ export interface Rider {
   isVerified: boolean;
   isDeleted: boolean;
 
+  // Last GPS fix the Rider App reported (PATCH /rider-auth/location) —
+  // null fields until the rider's first ping.
+  lastLocation?: {
+    lat: number | null;
+    lng: number | null;
+    updatedAt: string | null;
+  };
+
+  // Populated only when this rider currently has an order Out for
+  // Delivery (see services/rider.service.js#attachActiveDelivery) — null
+  // otherwise. Gates the Riders page's "Track" action.
+  activeDelivery?: {
+    orderId: string;
+    orderNumber: string;
+  } | null;
+
   verifiedAt?: string | null;
   verifiedBy?: AdminRef;
 

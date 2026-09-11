@@ -6,6 +6,7 @@ import {
   Loader2,
   Mail,
   MoreHorizontal,
+  Navigation,
   Phone,
   Plus,
   Search,
@@ -50,6 +51,7 @@ import {
 } from "./rider.status";
 import type { RiderAction } from "./rider.status";
 import type { Rider, RiderStatus, VehicleType } from "@/types/rider";
+import { RiderTrackingDialog } from "./RiderTrackingDialog";
 
 type QuickFilter = "all" | RiderStatus;
 
@@ -75,6 +77,7 @@ export default function Riders() {
 
   const [rejectTarget, setRejectTarget] = useState<Rider | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [trackingRider, setTrackingRider] = useState<Rider | null>(null);
 
   const isFirstRender = useRef(true);
 
@@ -356,6 +359,20 @@ export default function Riders() {
                     </span>
                   </div>
 
+                  {rider.activeDelivery && (
+                    <button
+                      type="button"
+                      onClick={() => setTrackingRider(rider)}
+                      className="mt-3 flex w-full items-center justify-between rounded-lg bg-primary/10 px-3 py-2 text-left text-xs font-medium text-primary transition hover:bg-primary/15"
+                    >
+                      <span>Out for delivery — #{rider.activeDelivery.orderNumber}</span>
+                      <span className="flex items-center gap-1">
+                        <Navigation className="h-3 w-3" />
+                        Track
+                      </span>
+                    </button>
+                  )}
+
                   {rider.status === "rejected" && rider.rejectionReason && (
                     <p className="mt-3 rounded-lg bg-muted/60 p-2 text-xs text-muted-foreground">
                       Rejected: {rider.rejectionReason}
@@ -403,6 +420,11 @@ export default function Riders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RiderTrackingDialog
+        rider={trackingRider}
+        onOpenChange={(open) => !open && setTrackingRider(null)}
+      />
     </div>
   );
 }
