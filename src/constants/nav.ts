@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ShoppingBag, Store, Package, ClipboardCheck, Image, LayoutGrid, Tag, Calendar,
+  LayoutDashboard, ShoppingBag, Store, Bike, Package, ClipboardCheck, Image, LayoutGrid, Tag, Calendar,
   Users, Bell, DoorOpen, BarChart3, RotateCcw, Settings,
 } from "lucide-react";
 
@@ -7,6 +7,7 @@ export const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/sellers", label: "Sellers", icon: Store },
+  { to: "/riders", label: "Riders", icon: Bike },
   { to: "/products", label: "Products", icon: Package },
   { to: "/products/approvals", label: "Product Approvals", icon: ClipboardCheck },
   { to: "/marketing/banners", label: "Banners", icon: Image },

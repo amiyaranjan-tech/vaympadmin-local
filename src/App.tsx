@@ -13,6 +13,8 @@ import Orders from "@/pages/orders/Orders";
 import Sellers from "@/pages/sellers/Sellers";
 import SellerDetails from "@/pages/sellers/SellerDetails";
 import SellerForm from "@/pages/sellers/SellerForm";
+import Riders from "@/pages/riders/Riders";
+import RiderForm from "@/pages/riders/RiderForm";
 import Products from "@/pages/products/Products";
 import ProductForm from "@/pages/products/ProductForm";
 import ProductApprovals from "@/pages/products/ProductApprovals";
@@ -62,6 +64,10 @@ export default function App() {
               <Route path="/sellers/:id" element={<SellerDetails />} />
 
               <Route path="/sellers/:id/edit" element={<SellerForm />} />
+
+              <Route path="/riders" element={<Riders />} />
+
+              <Route path="/riders/new" element={<RiderForm />} />
 
               <Route path="/products" element={<Products />} />
 
