@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import { NAV } from "@/constants/nav";
 import { cn } from "@/lib/utils";
+import vaympLogo from "@/assets/vaymp-logo.png";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +21,8 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
   return (
     <>
       <div className="flex items-center gap-2 px-6 py-6">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
-          <Sparkles className="h-5 w-5" />
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary shadow-soft">
+          <img src={vaympLogo} alt="Vaymp" className="h-7 w-7 object-contain" />
         </div>
         <div>
           <div className="text-lg font-bold tracking-tight text-sidebar-foreground">Vaymp</div>

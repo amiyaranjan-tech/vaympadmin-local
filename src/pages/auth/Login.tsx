@@ -4,10 +4,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import useAuth from "@/hooks/useAuth";
+import vaympLogo from "@/assets/vaymp-logo.png";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,7 @@ export default function Login() {
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15 backdrop-blur">
-              <Sparkles className="h-5 w-5" />
+              <img src={vaympLogo} alt="Vaymp" className="h-8 w-8 object-contain" />
             </div>
 
             <div className="text-xl font-bold tracking-tight">Vaymp</div>
@@ -123,8 +124,8 @@ export default function Login() {
         >
           <div className="mb-8">
             <div className="mb-6 flex items-center gap-2 lg:hidden">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
-                <Sparkles className="h-5 w-5" />
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary">
+                <img src={vaympLogo} alt="Vaymp" className="h-7 w-7 object-contain" />
               </div>
 
               <span className="text-lg font-bold">Vaymp</span>
