@@ -21,6 +21,7 @@ import ProductApprovals from "@/pages/products/ProductApprovals";
 import Banners from "@/pages/marketing/banners/Banners";
 import BannerForm from "@/pages/marketing/banners/BannerForm";
 import CategoryBanners from "@/pages/marketing/category-banners/CategoryBanners";
+import CategorySidebarBanners from "@/pages/marketing/category-sidebar-banners/CategorySidebarBanners";
 import Deals from "@/pages/deals/Deals";
 import BogoOfferForm from "@/pages/deals/BogoOfferForm";
 import SpendThresholdOfferForm from "@/pages/deals/SpendThresholdOfferForm";
@@ -84,6 +85,8 @@ export default function App() {
               <Route path="/marketing/banners/:id/edit" element={<BannerForm />} />
 
               <Route path="/category-banners" element={<CategoryBanners />} />
+
+              <Route path="/category-sidebar-banners" element={<CategorySidebarBanners />} />
 
               <Route path="/deals" element={<Deals />} />
 
