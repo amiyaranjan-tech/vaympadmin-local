@@ -55,9 +55,14 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ open }: { open: boolean }) {
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+    <aside
+      className={cn(
+        "sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex",
+        !open && "md:hidden",
+      )}
+    >
       <SidebarNav />
     </aside>
   );

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -6,16 +7,20 @@ import { Topbar } from "./Topbar";
 
 export function DashboardLayout() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar />
+      {/* Sidebar — collapsible on md+ via Topbar's toggle button */}
+      <Sidebar open={sidebarOpen} />
 
       {/* Right Side */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Fixed Header */}
-        <Topbar />
+        <Topbar
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
+        />
 
         {/* Scrollable Content */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8">

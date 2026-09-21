@@ -13,6 +13,7 @@ const targetTypeEnum = z.enum([
   "seller_shop",
   "custom_url",
   "dynamic_ui",
+  "deal_screen",
 ]);
 
 export const bannerSchema = z
@@ -44,6 +45,9 @@ export const bannerSchema = z
       "shop_page",
       "offers_page",
       "bottom_banner",
+      "tiered_deals_hero",
+      "bogo_deals_hero",
+      "massive_deals_hero",
     ]),
 
     priority: z.coerce.number().int().default(0),

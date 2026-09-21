@@ -28,12 +28,13 @@ import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
-import { uploadImageLocally } from "@/utils/localImageUpload";
+import { uploadImage } from "@/utils/imageUpload";
 import type { DropdownOptions } from "@/types/option";
 import type { ProductImage } from "@/types/product";
 
 import { productSchema, ProductFormValues as Form } from "./product.schema";
 import { createProductPayload, updateProductPayload } from "./product.mapper";
+import { CreateBrandDialog } from "./CreateBrandDialog";
 
 const STEPS = [
   "Basics",
@@ -126,6 +127,7 @@ export default function ProductForm() {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [draggingImages, setDraggingImages] = useState(false);
+  const [pendingBrand, setPendingBrand] = useState<string | null>(null);
 
   const form = useForm<Form>({
     resolver: zodResolver(productSchema),
@@ -304,7 +306,7 @@ export default function ProductForm() {
 
     try {
       const uploaded = await Promise.all(
-        Array.from(files).map((file) => uploadImageLocally(file)),
+        Array.from(files).map((file) => uploadImage(file)),
       );
       setImages((prev) => [...prev, ...uploaded]);
       toast.success(`${uploaded.length} image(s) added`);
@@ -434,13 +436,22 @@ export default function ProductForm() {
                   </div>
                   <div className="space-y-2">
                     <Label>Brand</Label>
-                    <Combobox
-                      value={form.watch("brand")}
-                      onChange={(v) => form.setValue("brand", v)}
-                      onCreate={(v) => addOption({ field: "brand", value: v })}
-                      options={options.brands}
-                      placeholder="Select or add a brand"
-                    />
+                    <div className="flex items-center gap-2">
+                      {options.brandImages[form.watch("brand")] && (
+                        <img
+                          src={options.brandImages[form.watch("brand")].url}
+                          alt={form.watch("brand")}
+                          className="h-9 w-9 shrink-0 rounded-lg border border-border object-cover"
+                        />
+                      )}
+                      <Combobox
+                        value={form.watch("brand")}
+                        onChange={(v) => form.setValue("brand", v)}
+                        onCreate={(v) => setPendingBrand(v)}
+                        options={options.brands}
+                        placeholder="Select or add a brand"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Category</Label>
@@ -839,6 +850,18 @@ export default function ProductForm() {
           )}
         </div>
       </form>
+
+      <CreateBrandDialog
+        brandName={pendingBrand}
+        onCancel={() => {
+          if (form.watch("brand") === pendingBrand) form.setValue("brand", "");
+          setPendingBrand(null);
+        }}
+        onCreated={(image) => {
+          if (pendingBrand) addOption({ field: "brand", value: pendingBrand, image });
+          setPendingBrand(null);
+        }}
+      />
     </div>
   );
 }

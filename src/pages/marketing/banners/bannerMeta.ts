@@ -45,6 +45,9 @@ export const POSITIONS: DisplayPosition[] = [
   "shop_page",
   "offers_page",
   "bottom_banner",
+  "tiered_deals_hero",
+  "bogo_deals_hero",
+  "massive_deals_hero",
 ];
 
 export const POSITION_LABELS: Record<DisplayPosition, string> = {
@@ -55,6 +58,9 @@ export const POSITION_LABELS: Record<DisplayPosition, string> = {
   shop_page: "Shop Page",
   offers_page: "Offers Page",
   bottom_banner: "Bottom Banner",
+  tiered_deals_hero: "Tiered Deals Screen Hero",
+  bogo_deals_hero: "BOGO Deals Screen Hero",
+  massive_deals_hero: "Massive Deals Screen Hero",
 };
 
 export const TARGET_TYPES: TargetType[] = [
@@ -68,6 +74,7 @@ export const TARGET_TYPES: TargetType[] = [
   "seller_shop",
   "custom_url",
   "dynamic_ui",
+  "deal_screen",
 ];
 
 export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
@@ -81,6 +88,18 @@ export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   seller_shop: "Seller Shop",
   custom_url: "Custom URL",
   dynamic_ui: "Dynamic UI",
+  deal_screen: "Deal Screen",
+};
+
+// Fixed set of named deal screens a "deal_screen" targetId may point to —
+// mirrors constants/banner.js#DEAL_SCREENS on the backend.
+export const DEAL_SCREENS = ["deals", "tiered", "bogo", "massive"] as const;
+
+export const DEAL_SCREEN_LABELS: Record<(typeof DEAL_SCREENS)[number], string> = {
+  deals: "Deals Home",
+  tiered: "Tiered Deals",
+  bogo: "BOGO Deals",
+  massive: "Massive Deals",
 };
 
 // Target types that need a targetId picked — mirrors

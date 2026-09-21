@@ -4,12 +4,11 @@ interface UploadOptions {
   onProgress?: (percent: number) => void;
 }
 
-// ponytail: every admin image upload (offer/category banners, marketing
-// banners, product images, seller images) skips Cloudinary for now — reads
-// the file locally and hands back a base64 data URI as `url` instead,
-// stored as-is on the plain string url fields. Swap back to
-// uploadImageToCloudinary (cloudinaryUpload.ts) once real image hosting is
-// wanted again.
+// ponytail: deal/offer forms still skip real hosting — reads the file
+// locally and hands back a base64 data URI as `url` instead, stored as-is
+// on the plain string url fields. Marketing banners, category banners, and
+// product images now upload for real (see imageUpload.ts); swap these
+// remaining callers over the same way once wanted.
 export async function uploadImageLocally(
   file: File,
   { onProgress }: UploadOptions = {},

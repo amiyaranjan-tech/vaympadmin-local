@@ -41,7 +41,10 @@ export type DisplayPosition =
   | "brand_page"
   | "shop_page"
   | "offers_page"
-  | "bottom_banner";
+  | "bottom_banner"
+  | "tiered_deals_hero"
+  | "bogo_deals_hero"
+  | "massive_deals_hero";
 
 export type TargetType =
   | "none"
@@ -53,7 +56,8 @@ export type TargetType =
   | "brand"
   | "seller_shop"
   | "custom_url"
-  | "dynamic_ui";
+  | "dynamic_ui"
+  | "deal_screen";
 
 // Admin-set intent only — "scheduled"/"expired" are computed server-side
 // (Banner.computeEffectiveStatus) and only ever appear as `effectiveStatus`.

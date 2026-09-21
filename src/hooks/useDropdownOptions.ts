@@ -18,6 +18,7 @@ const EMPTY: DropdownOptions = {
   subcategoriesByCategory: {},
   groups: [],
   brands: [],
+  brandImages: {},
   colors: [],
   materials: [],
   seasons: [],
@@ -104,7 +105,7 @@ export default function useDropdownOptions() {
    */
 
   const addOption = useCallback(
-    ({ field, value, scope = "" }: CreateOptionRequest) => {
+    ({ field, value, scope = "", image }: CreateOptionRequest) => {
       const trimmed = value.trim();
 
       if (!trimmed) return;
@@ -162,7 +163,13 @@ export default function useDropdownOptions() {
               },
             };
           case "brand":
-            return { ...prev, brands: insertSorted(prev.brands, trimmed) };
+            return {
+              ...prev,
+              brands: insertSorted(prev.brands, trimmed),
+              brandImages: image
+                ? { ...prev.brandImages, [trimmed]: image }
+                : prev.brandImages,
+            };
           case "color":
             return { ...prev, colors: insertSorted(prev.colors, trimmed) };
           case "material":
@@ -227,7 +234,7 @@ export default function useDropdownOptions() {
         }
       });
 
-      optionService.create({ field, value: trimmed, scope }).catch((error) => {
+      optionService.create({ field, value: trimmed, scope, image }).catch((error) => {
         const message =
           error instanceof Error ? error.message : "Failed to save new option";
 
@@ -296,8 +303,15 @@ export default function useDropdownOptions() {
                 ),
               },
             };
-          case "brand":
-            return { ...prev, brands: removeFromList(prev.brands, trimmed) };
+          case "brand": {
+            const brandImages = { ...prev.brandImages };
+            delete brandImages[trimmed];
+            return {
+              ...prev,
+              brands: removeFromList(prev.brands, trimmed),
+              brandImages,
+            };
+          }
           case "color":
             return { ...prev, colors: removeFromList(prev.colors, trimmed) };
           case "material":

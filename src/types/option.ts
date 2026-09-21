@@ -1,3 +1,5 @@
+import type { UploadedImage } from "@/types/upload";
+
 /**
  * ==========================================
  * Common API Response
@@ -78,6 +80,9 @@ export interface DropdownOptions {
   subcategoriesByCategory: Record<string, string[]>;
   groups: string[];
   brands: string[];
+  // Keyed by brand name — only brands an admin uploaded a logo for appear
+  // here (see CreateBrandDialog); every other option field has no image.
+  brandImages: Record<string, UploadedImage>;
   colors: string[];
   materials: string[];
   seasons: string[];
@@ -118,6 +123,8 @@ export interface CreateOptionRequest {
   field: DropdownOptionField;
   value: string;
   scope?: string;
+  // Only meaningful for field "brand" — see CreateBrandDialog.
+  image?: UploadedImage;
 }
 
 /**

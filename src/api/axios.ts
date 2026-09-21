@@ -17,12 +17,14 @@ interface ApiError {
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
 
+// No default Content-Type here: axios already sets "application/json" on
+// its own for plain-object payloads, and forcing it as a default header
+// broke FormData uploads — axios couldn't detect the FormData body and let
+// the browser set its own multipart boundary, so uploads silently sent
+// `{"file":{}}` as JSON instead of the real file bytes.
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 /**

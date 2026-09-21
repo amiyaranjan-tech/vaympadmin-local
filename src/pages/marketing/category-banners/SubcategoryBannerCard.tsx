@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import categoryBannerService from "@/services/categoryBanner.service";
-import { uploadImageLocally } from "@/utils/localImageUpload";
+import { uploadImage } from "@/utils/imageUpload";
 
 import type { CategoryBanner, CategoryBannerGender } from "@/types/categoryBanner";
 
@@ -15,8 +15,8 @@ import type { CategoryBanner, CategoryBannerGender } from "@/types/categoryBanne
 // (label+hidden input) but compact and self-contained: uploading here saves
 // immediately (upsert), there's no separate form/Save step per card, since
 // every card here already IS one complete record
-// (gender+category+subcategory -> image). Uses uploadImageLocally
-// (base64 data URI, no Cloudinary) — see localImageUpload.ts.
+// (gender+category+subcategory -> image). Uploads via uploadImage (real
+// hosted URL through our backend/ImageKit) — see imageUpload.ts.
 export function SubcategoryBannerCard({
   gender,
   category,
@@ -45,7 +45,7 @@ export function SubcategoryBannerCard({
     setUploading(true);
 
     try {
-      const image = await uploadImageLocally(file);
+      const image = await uploadImage(file);
 
       const saved = await categoryBannerService.upsert({
         gender,
@@ -80,8 +80,9 @@ export function SubcategoryBannerCard({
   return (
     <Card className="overflow-hidden rounded-2xl border-border/50 shadow-soft">
       <label
+        tabIndex={0}
         className={cn(
-          "relative flex aspect-[3/4] w-full items-center justify-center bg-muted/40",
+          "relative flex aspect-[3/4] w-full items-center justify-center bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           busy ? "cursor-not-allowed" : "cursor-pointer",
           dragging && "ring-2 ring-primary ring-inset",
         )}
@@ -95,6 +96,9 @@ export function SubcategoryBannerCard({
           setDragging(false);
           if (!busy) void handleFile(e.dataTransfer.files);
         }}
+        onPaste={(e) => {
+          if (!busy) void handleFile(e.clipboardData.files);
+        }}
       >
         {banner?.image.url ? (
           <img
@@ -106,7 +110,7 @@ export function SubcategoryBannerCard({
           <div className="flex flex-col items-center gap-1.5 px-3 text-center text-muted-foreground">
             <Upload className="h-5 w-5" />
             <span className="text-xs font-medium">
-              {dragging ? "Drop to upload" : "Upload or drag & drop"}
+              {dragging ? "Drop to upload" : "Upload, drag & drop, or paste"}
             </span>
           </div>
         )}

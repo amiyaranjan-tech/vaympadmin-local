@@ -15,28 +15,10 @@ export interface UploadApiResponse<T> {
 
 /**
  * ==========================================
- * Sign Upload
- * ==========================================
- */
-
-export interface SignUploadRequest {
-  folder?: string;
-}
-
-export interface UploadSignature {
-  signature: string;
-  timestamp: number;
-  apiKey: string;
-  cloudName: string;
-  folder: string;
-}
-
-/**
- * ==========================================
  * Uploaded Image
  * ==========================================
- * Shape shared by Banner/Product/Seller image fields — a real Cloudinary
- * upload result.
+ * Shape shared by Banner/Product/Seller image fields — a real hosted
+ * upload result (backend stores it in ImageKit, see api/upload.api.ts).
  */
 
 export interface UploadedImage {

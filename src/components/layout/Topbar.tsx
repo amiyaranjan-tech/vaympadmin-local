@@ -5,6 +5,8 @@ import {
   Calendar,
   LogOut,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Sun,
   User as UserIcon,
@@ -55,7 +57,12 @@ interface SearchItem {
   orderNumber?: string;
 }
 
-export function Topbar() {
+interface TopbarProps {
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+}
+
+export function Topbar({ sidebarOpen, onToggleSidebar }: TopbarProps) {
   const { theme, toggle } = useTheme();
   const { admin, logout } = useAuth();
   const {
@@ -129,6 +136,20 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-8">
       <MobileSidebar />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onToggleSidebar}
+        className="hidden shrink-0 rounded-xl md:inline-flex"
+      >
+        {sidebarOpen ? (
+          <PanelLeftClose className="h-4 w-4" />
+        ) : (
+          <PanelLeftOpen className="h-4 w-4" />
+        )}
+        <span className="sr-only">Toggle sidebar</span>
+      </Button>
 
       <div className="relative max-w-xl flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

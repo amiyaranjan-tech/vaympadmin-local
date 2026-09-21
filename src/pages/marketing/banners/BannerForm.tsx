@@ -29,7 +29,7 @@ import useSellers from "@/hooks/useSellers";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import type { BannerImage } from "@/types/banner";
 
-import { uploadImageLocally } from "@/utils/localImageUpload";
+import { uploadImage } from "@/utils/imageUpload";
 
 import { bannerSchema, BannerFormValues as Form } from "./banner.schema";
 import { createBannerPayload, updateBannerPayload } from "./banner.mapper";
@@ -41,6 +41,8 @@ import {
   POSITION_LABELS,
   TARGET_TYPES,
   TARGET_TYPE_LABELS,
+  DEAL_SCREENS,
+  DEAL_SCREEN_LABELS,
 } from "./bannerMeta";
 import { STATUS_LABELS } from "./bannerStatus";
 
@@ -319,7 +321,7 @@ export default function BannerForm() {
     }));
 
     try {
-      const uploaded = await uploadImageLocally(file, {
+      const uploaded = await uploadImage(file, {
         onProgress: (progress) => setState((prev) => ({ ...prev, progress })),
       });
 
@@ -452,8 +454,9 @@ export default function BannerForm() {
                     <Label>Mobile Banner Image (required)</Label>
 
                     <label
+                      tabIndex={0}
                       className={cn(
-                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 hover:bg-muted/40",
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         imageState.status === "uploading"
                           ? "cursor-not-allowed opacity-60"
                           : "cursor-pointer",
@@ -469,6 +472,11 @@ export default function BannerForm() {
                         setDraggingKind(null);
                         if (imageState.status !== "uploading") {
                           void handleImageFile(e.dataTransfer.files, "image");
+                        }
+                      }}
+                      onPaste={(e) => {
+                        if (imageState.status !== "uploading") {
+                          void handleImageFile(e.clipboardData.files, "image");
                         }
                       }}
                     >
@@ -487,7 +495,7 @@ export default function BannerForm() {
                               : "Upload image"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Drag & drop or click — recommended 3:2 or 16:9
+                        Drag & drop, click, or paste — recommended 3:2 or 16:9
                       </div>
                       <input
                         type="file"
@@ -525,8 +533,9 @@ export default function BannerForm() {
                     <Label>Thumbnail (optional)</Label>
 
                     <label
+                      tabIndex={0}
                       className={cn(
-                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40",
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         thumbnailState.status === "uploading"
                           ? "cursor-not-allowed opacity-60"
                           : "cursor-pointer",
@@ -544,6 +553,11 @@ export default function BannerForm() {
                           void handleImageFile(e.dataTransfer.files, "thumbnail");
                         }
                       }}
+                      onPaste={(e) => {
+                        if (thumbnailState.status !== "uploading") {
+                          void handleImageFile(e.clipboardData.files, "thumbnail");
+                        }
+                      }}
                     >
                       {thumbnailState.status === "uploading" ? (
                         <Loader2 className="mb-2 h-5 w-5 animate-spin text-primary" />
@@ -555,7 +569,7 @@ export default function BannerForm() {
                           ? `Uploading… ${thumbnailState.progress}%`
                           : draggingKind === "thumbnail"
                             ? "Drop to upload"
-                            : "Upload thumbnail"}
+                            : "Upload, drag & drop, or paste"}
                       </div>
                       <input
                         type="file"
@@ -746,6 +760,27 @@ export default function BannerForm() {
                         value={targetId}
                         onChange={(e) => form.setValue("targetId", e.target.value)}
                       />
+                    </div>
+                  )}
+
+                  {targetType === "deal_screen" && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Deal Screen</Label>
+                      <Select
+                        value={targetId}
+                        onValueChange={(v) => form.setValue("targetId", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a deal screen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEAL_SCREENS.map((screen) => (
+                            <SelectItem key={screen} value={screen}>
+                              {DEAL_SCREEN_LABELS[screen]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
 
