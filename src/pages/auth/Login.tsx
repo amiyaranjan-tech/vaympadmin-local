@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import useAuth from "@/hooks/useAuth";
@@ -25,6 +25,8 @@ export default function Login() {
   const navigate = useNavigate();
 
   const { login, isAuthed, loading } = useAuth();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthed) {
@@ -159,13 +161,29 @@ export default function Login() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
 
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="h-11 rounded-xl"
-                {...form.register("password")}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="h-11 rounded-xl pr-10"
+                  {...form.register("password")}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
 
               {form.formState.errors.password && (
                 <p className="text-xs text-destructive">
