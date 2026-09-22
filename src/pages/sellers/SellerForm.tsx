@@ -12,6 +12,7 @@ import { uploadImage } from "@/utils/imageUpload";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import type { SellerImage } from "@/types/seller";
 
@@ -35,6 +36,7 @@ export default function SellerForm() {
   const [cover, setCover] = useState<SellerImage>(emptyImage);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [draggingField, setDraggingField] = useState<"logo" | "cover" | null>(null);
 
   /**
    * ==========================================
@@ -202,6 +204,22 @@ const handleAssetUpload = async (
   }
 };
 
+const dragHandlers = (kind: "logo" | "cover") => ({
+  onDragOver: (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingField(kind);
+  },
+  onDragLeave: () => setDraggingField(null),
+  onDrop: (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingField(null);
+    void handleAssetUpload(e.dataTransfer.files, kind);
+  },
+  onPaste: (e: React.ClipboardEvent) => {
+    void handleAssetUpload(e.clipboardData.files, kind);
+  },
+});
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -223,7 +241,14 @@ const handleAssetUpload = async (
           <div className="mb-4 text-sm font-semibold">Brand Assets</div>
 
           <div className="space-y-4">
-            <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
+            <label
+              tabIndex={0}
+              className={cn(
+                "relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                draggingField === "logo" && "ring-2 ring-primary ring-inset",
+              )}
+              {...dragHandlers("logo")}
+            >
               {logo.url ? (
                 <img
                   src={logo.url}
@@ -246,8 +271,12 @@ const handleAssetUpload = async (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      <div className="text-sm font-medium">Upload Logo</div>
-                      <div className="text-xs text-muted-foreground">PNG / JPG</div>
+                      <div className="text-sm font-medium">
+                        {draggingField === "logo" ? "Drop to upload" : "Upload Logo"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        PNG / JPG — drag & drop or paste
+                      </div>
                     </>
                   )}
                 </div>
@@ -268,7 +297,14 @@ const handleAssetUpload = async (
               />
             </label>
 
-            <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
+            <label
+              tabIndex={0}
+              className={cn(
+                "relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                draggingField === "cover" && "ring-2 ring-primary ring-inset",
+              )}
+              {...dragHandlers("cover")}
+            >
               {cover.url ? (
                 <img
                   src={cover.url}
@@ -291,8 +327,12 @@ const handleAssetUpload = async (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      <div className="text-sm font-medium">Upload Cover</div>
-                      <div className="text-xs text-muted-foreground">Wide Banner</div>
+                      <div className="text-sm font-medium">
+                        {draggingField === "cover" ? "Drop to upload" : "Upload Cover"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Wide Banner — drag & drop or paste
+                      </div>
                     </>
                   )}
                 </div>
