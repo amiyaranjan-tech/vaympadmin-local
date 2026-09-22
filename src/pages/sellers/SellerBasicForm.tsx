@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ interface Props {
 export default function SellerBasicForm({ form, existing }: Props) {
   const { options, addOption } = useDropdownOptions();
   const { settings } = useSettings();
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <Card className="rounded-2xl p-6 shadow-soft lg:col-span-2">
@@ -83,7 +86,27 @@ export default function SellerBasicForm({ form, existing }: Props) {
             {existing ? "Password (Leave blank to keep current)" : "Password"}
           </Label>
 
-          <Input type="password" {...form.register("password")} />
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              className="pr-10"
+              {...form.register("password")}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
 
           {form.formState.errors.password && (
             <p className="text-xs text-destructive">
