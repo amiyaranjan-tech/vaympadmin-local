@@ -8,9 +8,8 @@ interface UploadOptions {
 
 /**
  * Uploads a file to our backend (`POST /api/v1/uploads`), which stores it
- * in ImageKit and returns the real hosted URL — used by banner/category
- * banner forms. Other forms still use uploadImageLocally's base64 stopgap;
- * see localImageUpload.ts.
+ * in ImageKit and returns the real hosted URL — used by every form that
+ * uploads an image.
  */
 export async function uploadImage(
   file: File,
