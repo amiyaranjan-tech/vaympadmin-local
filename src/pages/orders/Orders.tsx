@@ -1,12 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, Search } from "lucide-react";
+
+import useOrders from "@/hooks/useOrders";
+import useSellers from "@/hooks/useSellers";
 
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TableRowSkeleton } from "@/components/common/Skeletons";
 import {
   Select,
   SelectContent,
@@ -21,63 +25,86 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
-import { orders as ordersMock, sellers } from "@/data/mock";
-import type { Order } from "@/types";
+import type { Order, OrderQueryParams } from "@/types/order";
 import {
   formatCurrency,
   formatDate,
   formatDateTime,
 } from "@/utils/format";
 
-const STATUS = [
-  "all",
-  "pending",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
-] as const;
+const STATUS = ["all", "Out for Delivery", "Delivered", "Cancelled"] as const;
 
-const PAYMENT = [
-  "all",
-  "paid",
-  "pending",
-  "failed",
-  "refunded",
-] as const;
+const PAYMENT = ["all", "paid", "pending", "failed", "refunded"] as const;
 
 export default function Orders() {
+  const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [payment, setPayment] = useState("all");
   const [sellerId, setSellerId] = useState("all");
   const [selected, setSelected] = useState<Order | null>(null);
 
-  const list = useMemo(() => {
-    return ordersMock.filter((o) => {
-      if (status !== "all" && o.status !== status) return false;
-      if (payment !== "all" && o.paymentStatus !== payment) return false;
-      if (sellerId !== "all" && o.sellerId !== sellerId) return false;
+  // Any filter change jumps back to page 1 — same pattern Users.tsx uses.
+  const filterKey = `${q}|${status}|${payment}|${sellerId}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
 
-      if (
-        q &&
-        !`${o.orderNumber} ${o.customerName} ${o.sellerName}`
-          .toLowerCase()
-          .includes(q.toLowerCase())
-      ) {
-        return false;
-      }
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
 
-      return true;
-    });
-  }, [q, status, payment, sellerId]);
+  const { sellers } = useSellers({ limit: 100 });
+
+  const queryParams = useMemo<OrderQueryParams>(() => {
+    const params: OrderQueryParams = { page };
+
+    if (q.trim()) params.search = q.trim();
+    if (status !== "all") params.status = status as OrderQueryParams["status"];
+    if (payment !== "all") params.paymentStatus = payment as OrderQueryParams["paymentStatus"];
+    if (sellerId !== "all") params.sellerId = sellerId;
+
+    return params;
+  }, [page, q, status, payment, sellerId]);
+
+  const { orders, total, totalPages, loading, error, fetchOrders } = useOrders();
+
+  useEffect(() => {
+    void fetchOrders(queryParams, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryParams]);
+
+  if (error) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Card className="rounded-2xl p-8 text-center">
+          <h2 className="text-lg font-semibold">Unable to load orders</h2>
+
+          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+
+          <Button
+            className="mt-6 rounded-xl"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
       <PageHeader
         title="Orders"
-        description="Track and manage marketplace orders."
+        description={`${orders.length} of ${total} marketplace orders.`}
       />
 
       <Card className="shrink-0 rounded-2xl p-5 shadow-soft">
@@ -93,7 +120,7 @@ export default function Orders() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Order ID, customer or seller..."
+                placeholder="Order ID, customer or shop..."
                 className="pl-9"
               />
             </div>
@@ -111,8 +138,8 @@ export default function Orders() {
 
               <SelectContent>
                 {STATUS.map((item) => (
-                  <SelectItem key={item} value={item} className="capitalize">
-                    {item}
+                  <SelectItem key={item} value={item}>
+                    {item === "all" ? "All" : item}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -153,7 +180,7 @@ export default function Orders() {
                 <SelectItem value="all">All Sellers</SelectItem>
 
                 {sellers.map((seller) => (
-                  <SelectItem key={seller.id} value={seller.id}>
+                  <SelectItem key={seller._id} value={seller._id}>
                     {seller.shopName}
                   </SelectItem>
                 ))}
@@ -168,7 +195,7 @@ export default function Orders() {
       <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl shadow-soft">
         {/* Horizontal scroll stays inside the card */}
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className="min-w-[1700px] w-full border-collapse text-sm">
+          <table className="min-w-[1500px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-20 bg-muted">
               <tr className="border-b">
                 <th className="px-4 py-3 text-left font-semibold">Order</th>
@@ -191,8 +218,6 @@ export default function Orders() {
 
                 <th className="px-4 py-3 text-left font-semibold">Status</th>
 
-                <th className="px-4 py-3 text-left font-semibold">Delivery</th>
-
                 <th className="px-4 py-3 text-left font-semibold">Date</th>
 
                 <th className="px-4 py-3 text-center font-semibold">Action</th>
@@ -200,106 +225,146 @@ export default function Orders() {
             </thead>
 
             <tbody>
-              {list.map((o) => (
-                <motion.tr
-                  key={o.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="border-b border-border hover:bg-muted/40"
-                >
-                  <td className="whitespace-nowrap px-4 py-4 font-medium">
-                    {o.orderNumber}
+              {loading ? (
+                <TableRowSkeleton rows={8} cols={11} />
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={11}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
+                    No orders found.
                   </td>
+                </tr>
+              ) : (
+                orders.map((o) => (
+                  <motion.tr
+                    key={o._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="border-b border-border hover:bg-muted/40"
+                  >
+                    <td className="whitespace-nowrap px-4 py-4 font-medium">
+                      {o.orderNumber}
+                    </td>
 
-                  <td className="whitespace-nowrap px-4 py-4">
-                    {o.customerName}
-                  </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {o.customerName}
+                    </td>
 
-                  <td className="whitespace-nowrap px-4 py-4">
-                    {o.sellerName}
-                  </td>
+                    <td className="whitespace-nowrap px-4 py-4">
+                      {o.shops[0]?.shopName ?? "—"}
 
-                  <td className="max-w-[260px] px-4 py-4">
-                    <div className="truncate font-medium">
-                      {o.items[0]?.productName}
-                    </div>
+                      {o.shops.length > 1 && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          +{o.shops.length - 1} more
+                        </span>
+                      )}
+                    </td>
 
-                    {o.items.length > 1 && (
-                      <div className="text-xs text-muted-foreground">
-                        +{o.items.length - 1} more products
+                    <td className="max-w-[260px] px-4 py-4">
+                      <div className="truncate font-medium">
+                        {o.items[0]?.productName}
                       </div>
-                    )}
-                  </td>
 
-                  <td className="px-4 py-4 text-center">
-                    {o.items.reduce((sum, item) => sum + item.qty, 0)}
-                  </td>
+                      {o.items.length > 1 && (
+                        <div className="text-xs text-muted-foreground">
+                          +{o.items.length - 1} more products
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="whitespace-nowrap px-4 py-4 text-right font-semibold">
-                    {formatCurrency(o.total)}
-                  </td>
+                    <td className="px-4 py-4 text-center">
+                      {o.items.reduce((sum, item) => sum + item.quantity, 0)}
+                    </td>
 
-                  <td className="whitespace-nowrap px-4 py-4 text-right">
-                    {formatCurrency(o.commission)}
-                  </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-right font-semibold">
+                      {formatCurrency(o.total)}
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <Badge
-                      variant="outline"
-                      className="capitalize whitespace-nowrap"
-                    >
-                      {o.paymentStatus}
-                    </Badge>
-                  </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-right">
+                      {formatCurrency(o.commission)}
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <Badge
-                      variant="outline"
-                      className="capitalize whitespace-nowrap"
-                    >
-                      {o.status}
-                    </Badge>
-                  </td>
+                    <td className="px-4 py-4">
+                      <Badge
+                        variant="outline"
+                        className="capitalize whitespace-nowrap"
+                      >
+                        {o.paymentStatus}
+                      </Badge>
+                    </td>
 
-                  <td className="px-4 py-4">
-                    <Badge
-                      className="whitespace-nowrap"
-                      variant={
-                        o.status === "delivered"
-                          ? "default"
-                          : o.status === "shipped"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {o.status === "delivered"
-                        ? "Delivered"
-                        : o.status === "shipped"
-                          ? "In Transit"
-                          : "Pending"}
-                    </Badge>
-                  </td>
+                    <td className="px-4 py-4">
+                      <Badge
+                        className="whitespace-nowrap"
+                        variant={
+                          o.status === "Delivered"
+                            ? "default"
+                            : o.status === "Cancelled"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {o.status}
+                      </Badge>
+                    </td>
 
-                  <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
-                    {formatDate(o.createdAt)}
-                  </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
+                      {formatDate(o.createdAt)}
+                    </td>
 
-                  <td className="px-4 py-4 text-center">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelected(o)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </motion.tr>
-              ))}
+                    <td className="px-4 py-4 text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelected(o)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {totalPages > 1 && (
+        <Pagination className="shrink-0">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page > 1) setPage(page - 1);
+                }}
+                className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+
+            <PaginationItem>
+              <span className="px-4 text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+            </PaginationItem>
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (page < totalPages) setPage(page + 1);
+                }}
+                className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <Sheet
         open={!!selected}
@@ -328,13 +393,9 @@ export default function Orders() {
                     <div className="mt-1 font-medium">
                       {selected.customerName}
                     </div>
-                  </div>
 
-                  <div className="rounded-xl bg-muted/40 p-4">
-                    <div className="text-xs text-muted-foreground">Shop</div>
-
-                    <div className="mt-1 font-medium">
-                      {selected.sellerName}
+                    <div className="text-xs text-muted-foreground">
+                      {selected.customerPhone}
                     </div>
                   </div>
 
@@ -345,12 +406,12 @@ export default function Orders() {
                       {selected.paymentStatus}
                     </div>
 
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground uppercase">
                       {selected.paymentMethod}
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-muted/40 p-4">
+                  <div className="rounded-xl bg-muted/40 p-4 col-span-2">
                     <div className="text-xs text-muted-foreground">
                       Commission
                     </div>
@@ -361,27 +422,54 @@ export default function Orders() {
                   </div>
                 </div>
 
+                {/* Shops */}
+
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">Shops</h3>
+
+                  <div className="space-y-3">
+                    {selected.shops.map((shop, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-xl border p-4"
+                      >
+                        <div>
+                          <div className="font-medium">{shop.shopName}</div>
+
+                          <div className="text-xs text-muted-foreground">
+                            {shop.sellerStatus}
+                          </div>
+                        </div>
+
+                        <div className="font-semibold">
+                          {formatCurrency(shop.shopTotal)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Products */}
 
                 <div>
                   <h3 className="mb-3 text-sm font-semibold">Products</h3>
 
                   <div className="space-y-3">
-                    {selected.items.map((item) => (
+                    {selected.items.map((item, i) => (
                       <div
-                        key={item.productId}
+                        key={i}
                         className="flex items-center justify-between rounded-xl border p-4"
                       >
                         <div>
                           <div className="font-medium">{item.productName}</div>
 
                           <div className="text-sm text-muted-foreground">
-                            Qty: {item.qty}
+                            Qty: {item.quantity}
                           </div>
                         </div>
 
                         <div className="font-semibold">
-                          {formatCurrency(item.qty * item.price)}
+                          {formatCurrency(item.quantity * item.price)}
                         </div>
                       </div>
                     ))}
