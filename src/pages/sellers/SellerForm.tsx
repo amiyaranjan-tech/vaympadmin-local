@@ -7,15 +7,19 @@ import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 
 import useSellers from "@/hooks/useSellers";
+import { uploadImage } from "@/utils/imageUpload";
 
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+import type { SellerImage } from "@/types/seller";
 
 import SellerBasicForm from "./SellerBasicForm";
 import { SellerFormValues, sellerSchema } from "./seller.schema";
 import { createSellerPayload, updateSellerPayload } from "./seller.mapper";
+
+const emptyImage: SellerImage = { url: "", publicId: "" };
 
 export default function SellerForm() {
   const navigate = useNavigate();
@@ -27,6 +31,10 @@ export default function SellerForm() {
   const { getSeller, createSeller, updateSeller } = useSellers();
 
   const [loadingSeller, setLoadingSeller] = useState(isEdit);
+  const [logo, setLogo] = useState<SellerImage>(emptyImage);
+  const [cover, setCover] = useState<SellerImage>(emptyImage);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   /**
    * ==========================================
@@ -122,6 +130,9 @@ export default function SellerForm() {
           commissionRate:
             seller.commissionRate === null ? "" : String(seller.commissionRate),
         });
+
+        setLogo(seller.logo ?? emptyImage);
+        setCover(seller.cover ?? emptyImage);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load seller",
@@ -159,14 +170,35 @@ export default function SellerForm() {
 const onSubmit = async (values: SellerFormValues) => {
   try {
     if (isEdit && id) {
-      await updateSeller(id, updateSellerPayload(values));
+      await updateSeller(id, updateSellerPayload(values, logo, cover));
     } else {
-      await createSeller(createSellerPayload(values));
+      await createSeller(createSellerPayload(values, logo, cover));
     }
 
     navigate("/sellers");
   } catch {
     // useSellers already surfaces a toast for create/update failures.
+  }
+};
+
+const handleAssetUpload = async (
+  files: FileList | null,
+  kind: "logo" | "cover",
+) => {
+  const file = files?.[0];
+  if (!file) return;
+
+  const setImage = kind === "logo" ? setLogo : setCover;
+  const setUploading = kind === "logo" ? setUploadingLogo : setUploadingCover;
+
+  setUploading(true);
+
+  try {
+    setImage(await uploadImage(file));
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Image upload failed");
+  } finally {
+    setUploading(false);
   }
 };
 
@@ -191,28 +223,94 @@ const onSubmit = async (values: SellerFormValues) => {
           <div className="mb-4 text-sm font-semibold">Brand Assets</div>
 
           <div className="space-y-4">
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
-              <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+            <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
+              {logo.url ? (
+                <img
+                  src={logo.url}
+                  alt="Logo"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+              )}
 
-              <div className="text-sm font-medium">Upload Logo</div>
+              {(uploadingLogo || !logo.url) && (
+                <div
+                  className={
+                    logo.url
+                      ? "absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white"
+                      : "flex flex-col items-center"
+                  }
+                >
+                  {uploadingLogo ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-sm font-medium">Upload Logo</div>
+                      <div className="text-xs text-muted-foreground">PNG / JPG</div>
+                    </>
+                  )}
+                </div>
+              )}
 
-              <div className="text-xs text-muted-foreground">
-                PNG / JPG (Coming Soon)
-              </div>
+              {logo.url && !uploadingLogo && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 text-transparent transition hover:bg-black/40 hover:text-white">
+                  <span className="text-xs font-medium">Replace</span>
+                </div>
+              )}
 
-              <input type="file" className="hidden" disabled />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingLogo}
+                onChange={(e) => void handleAssetUpload(e.target.files, "logo")}
+              />
             </label>
 
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
-              <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+            <label className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border p-6 transition hover:bg-muted/40">
+              {cover.url ? (
+                <img
+                  src={cover.url}
+                  alt="Cover"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <Upload className="mb-2 h-5 w-5 text-muted-foreground" />
+              )}
 
-              <div className="text-sm font-medium">Upload Cover</div>
+              {(uploadingCover || !cover.url) && (
+                <div
+                  className={
+                    cover.url
+                      ? "absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white"
+                      : "flex flex-col items-center"
+                  }
+                >
+                  {uploadingCover ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="text-sm font-medium">Upload Cover</div>
+                      <div className="text-xs text-muted-foreground">Wide Banner</div>
+                    </>
+                  )}
+                </div>
+              )}
 
-              <div className="text-xs text-muted-foreground">
-                Wide Banner (Coming Soon)
-              </div>
+              {cover.url && !uploadingCover && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 text-transparent transition hover:bg-black/40 hover:text-white">
+                  <span className="text-xs font-medium">Replace</span>
+                </div>
+              )}
 
-              <input type="file" className="hidden" disabled />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingCover}
+                onChange={(e) => void handleAssetUpload(e.target.files, "cover")}
+              />
             </label>
           </div>
         </Card>

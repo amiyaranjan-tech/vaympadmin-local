@@ -1,6 +1,8 @@
-import type { CreateSellerRequest, UpdateSellerRequest } from "@/types/seller";
+import type { CreateSellerRequest, SellerImage, UpdateSellerRequest } from "@/types/seller";
 
 import type { SellerFormValues } from "./seller.schema";
+
+const emptyImage: SellerImage = { url: "", publicId: "" };
 
 /**
  * ==========================================
@@ -8,7 +10,11 @@ import type { SellerFormValues } from "./seller.schema";
  * ==========================================
  */
 
-function buildCommonPayload(values: SellerFormValues) {
+function buildCommonPayload(
+  values: SellerFormValues,
+  logo: SellerImage,
+  cover: SellerImage,
+) {
   return {
     shopName: values.shopName.trim(),
 
@@ -30,15 +36,9 @@ function buildCommonPayload(values: SellerFormValues) {
 
     description: values.description?.trim() ?? "",
 
-    logo: {
-      url: "",
-      publicId: "",
-    },
+    logo,
 
-    cover: {
-      url: "",
-      publicId: "",
-    },
+    cover,
 
     workingDays: values.workingDays
       .split(",")
@@ -70,13 +70,15 @@ function buildCommonPayload(values: SellerFormValues) {
 
 export function createSellerPayload(
   values: SellerFormValues,
+  logo: SellerImage = emptyImage,
+  cover: SellerImage = emptyImage,
 ): CreateSellerRequest {
   if (!values.password) {
     throw new Error("Password is required");
   }
 
   return {
-    ...buildCommonPayload(values),
+    ...buildCommonPayload(values, logo, cover),
 
     password: values.password,
   };
@@ -90,9 +92,11 @@ export function createSellerPayload(
 
 export function updateSellerPayload(
   values: SellerFormValues,
+  logo: SellerImage = emptyImage,
+  cover: SellerImage = emptyImage,
 ): UpdateSellerRequest {
   return {
-    ...buildCommonPayload(values),
+    ...buildCommonPayload(values, logo, cover),
 
     ...(values.password
       ? {
