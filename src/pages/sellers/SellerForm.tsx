@@ -45,7 +45,7 @@ export default function SellerForm() {
    */
 
   const form = useForm<SellerFormValues>({
-    resolver: zodResolver(sellerSchema),
+    resolver: zodResolver(sellerSchema(isEdit)),
 
     defaultValues: {
       shopName: "",
@@ -53,6 +53,7 @@ export default function SellerForm() {
       shopCategory: "",
       email: "",
       password: "",
+      confirmPassword: "",
 
       phone: "",
 
@@ -104,6 +105,8 @@ export default function SellerForm() {
           email: seller.email,
 
           password: "",
+
+          confirmPassword: "",
 
           phone: seller.phone,
 

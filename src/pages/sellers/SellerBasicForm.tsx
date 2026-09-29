@@ -83,7 +83,7 @@ export default function SellerBasicForm({ form, existing }: Props) {
 
         <div className="space-y-2">
           <Label>
-            {existing ? "Password (Leave blank to keep current)" : "Password"}
+            {existing ? "New Password (Leave blank to keep current)" : "Password"}
           </Label>
 
           <div className="relative">
@@ -111,6 +111,21 @@ export default function SellerBasicForm({ form, existing }: Props) {
           {form.formState.errors.password && (
             <p className="text-xs text-destructive">
               {form.formState.errors.password.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>{existing ? "Confirm New Password" : "Confirm Password"}</Label>
+
+          <Input
+            type={showPassword ? "text" : "password"}
+            {...form.register("confirmPassword")}
+          />
+
+          {form.formState.errors.confirmPassword && (
+            <p className="text-xs text-destructive">
+              {form.formState.errors.confirmPassword.message}
             </p>
           )}
         </div>

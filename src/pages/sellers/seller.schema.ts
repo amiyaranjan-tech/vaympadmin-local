@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const sellerSchema = z.object({
+const baseSellerSchema = z.object({
   shopName: z.string().min(2, "Shop name is required"),
 
   ownerName: z.string().min(2, "Owner name is required"),
@@ -14,6 +14,8 @@ export const sellerSchema = z.object({
     .min(8, "Minimum 8 characters")
     .optional()
     .or(z.literal("")),
+
+  confirmPassword: z.string().optional().or(z.literal("")),
 
   phone: z.string().min(10, "Invalid phone"),
 
@@ -54,4 +56,27 @@ export const sellerSchema = z.object({
     ),
 });
 
-export type SellerFormValues = z.infer<typeof sellerSchema>;
+/**
+ * Password is mandatory on create; on edit it's optional (blank keeps the
+ * current one). Either way, a typed password must match confirmPassword.
+ */
+export const sellerSchema = (isEdit: boolean) =>
+  baseSellerSchema.superRefine((values, ctx) => {
+    if (!isEdit && !values.password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["password"],
+        message: "Password is required",
+      });
+    }
+
+    if ((values.password || "") !== (values.confirmPassword || "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+      });
+    }
+  });
+
+export type SellerFormValues = z.infer<typeof baseSellerSchema>;
