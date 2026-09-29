@@ -18,8 +18,8 @@ export const productSchema = z.object({
 
   seller: z.string().min(1, "Please select a shop"),
 
-  sellingPrice: z.coerce.number().positive("Must be > 0"),
-  costPrice: z.coerce.number().positive("Must be > 0"),
+  sellingPrice: z.coerce.number().int("Whole rupees only").positive("Must be > 0"),
+  costPrice: z.coerce.number().int("Whole rupees only").positive("Must be > 0"),
   discountPercent: z.coerce.number().min(0).max(100),
 
   variants: z
