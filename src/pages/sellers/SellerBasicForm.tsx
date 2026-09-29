@@ -18,12 +18,14 @@ import type { SellerFormValues } from "./seller.schema";
 interface Props {
   form: UseFormReturn<SellerFormValues>;
   existing: boolean;
+  currentPassword?: string | null;
 }
 
-export default function SellerBasicForm({ form, existing }: Props) {
+export default function SellerBasicForm({ form, existing, currentPassword }: Props) {
   const { options, addOption } = useDropdownOptions();
   const { settings } = useSettings();
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
 
   return (
     <Card className="rounded-2xl p-6 shadow-soft lg:col-span-2">
@@ -80,6 +82,42 @@ export default function SellerBasicForm({ form, existing }: Props) {
             </p>
           )}
         </div>
+
+        {existing && (
+          <div className="space-y-2 md:col-span-2">
+            <Label>Current Password</Label>
+
+            {currentPassword ? (
+              <div className="relative md:w-1/2 md:pr-2">
+                <Input
+                  readOnly
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  className="pr-10"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground md:right-5"
+                  aria-label={showCurrent ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showCurrent ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Not available — set before passwords were viewable. Set a new
+                one below to make it visible.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>

@@ -106,6 +106,9 @@ export interface Seller {
   email: string;
   phone: string;
 
+  /** Decrypted login password; only on GET /sellers/:id, null if unknown. */
+  viewablePassword?: string | null;
+
   address: string;
   city: string;
 

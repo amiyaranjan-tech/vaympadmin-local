@@ -34,6 +34,7 @@ export default function SellerForm() {
   const [loadingSeller, setLoadingSeller] = useState(isEdit);
   const [logo, setLogo] = useState<SellerImage>(emptyImage);
   const [cover, setCover] = useState<SellerImage>(emptyImage);
+  const [currentPassword, setCurrentPassword] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [draggingField, setDraggingField] = useState<"logo" | "cover" | null>(null);
@@ -138,6 +139,7 @@ export default function SellerForm() {
 
         setLogo(seller.logo ?? emptyImage);
         setCover(seller.cover ?? emptyImage);
+        setCurrentPassword(seller.viewablePassword ?? null);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to load seller",
@@ -238,7 +240,11 @@ const dragHandlers = (kind: "logo" | "cover") => ({
         onSubmit={form.handleSubmit(onSubmit)}
         className="grid gap-6 lg:grid-cols-3"
       >
-        <SellerBasicForm form={form} existing={isEdit} />
+        <SellerBasicForm
+          form={form}
+          existing={isEdit}
+          currentPassword={currentPassword}
+        />
 
         <Card className="rounded-2xl p-6 shadow-soft">
           <div className="mb-4 text-sm font-semibold">Brand Assets</div>
