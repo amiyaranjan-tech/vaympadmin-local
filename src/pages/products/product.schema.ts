@@ -47,13 +47,10 @@ export const productSchema = z.object({
   isLimitedStock: z.boolean(),
   isBogo: z.boolean(),
 
-  // Product Highlights
+  // Product Highlights — tryAndBuy is derived server-side from
+  // isReturnable (Inner Wear is never returnable); sent only for
+  // completeness, the backend's pre-save hook overwrites it.
   tryAndBuy: z.boolean(),
-
-  // A non-returnable product can never be Try & Buy — enforced in the UI
-  // (see ProductForm's own onCheckedChange) and again server-side (the
-  // backend's pre-save hook forces tryAndBuy off regardless), so this
-  // schema itself doesn't need a cross-field refinement.
   isReturnable: z.boolean(),
 
   video: z.string().optional().or(z.literal("")),

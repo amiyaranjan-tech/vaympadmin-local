@@ -158,7 +158,7 @@ export default function ProductForm() {
       isNewArrival: false,
       isLimitedStock: false,
       isBogo: false,
-      tryAndBuy: false,
+      tryAndBuy: true,
       isReturnable: true,
       video: "",
     },
@@ -232,6 +232,7 @@ export default function ProductForm() {
   const variants = form.watch("variants");
   const gender = form.watch("gender");
   const category = form.watch("category");
+  const isInnerWear = category === "Inner Wear";
   const group = form.watch("group");
   const subcategory = form.watch("subcategory");
   const attributes = form.watch("attributes") ?? {};
@@ -693,13 +694,14 @@ export default function ProductForm() {
                     <div className="max-w-sm space-y-2">
                       <Label>Returns</Label>
                       <Select
-                        value={form.watch("isReturnable") ? "returnable" : "non_returnable"}
+                        // Inner Wear is always non-returnable — the backend
+                        // forces it too (models/Product.js pre-save).
+                        disabled={isInnerWear}
+                        value={form.watch("isReturnable") && !isInnerWear ? "returnable" : "non_returnable"}
                         onValueChange={(v) => {
                           const returnable = v === "returnable";
                           form.setValue("isReturnable", returnable);
-                          // A non-returnable product can never be Try & Buy —
-                          // mirrors the backend's own pre-save enforcement.
-                          if (!returnable) form.setValue("tryAndBuy", false);
+                          form.setValue("tryAndBuy", returnable);
                         }}
                       >
                         <SelectTrigger>
@@ -712,26 +714,13 @@ export default function ProductForm() {
                       </Select>
                     </div>
 
-                    <label
-                      className={cn(
-                        "flex max-w-sm items-center gap-3 rounded-xl border border-border p-4",
-                        form.watch("isReturnable")
-                          ? "cursor-pointer hover:bg-muted/40"
-                          : "cursor-not-allowed opacity-50",
-                      )}
-                    >
-                      <Checkbox
-                        checked={form.watch("tryAndBuy")}
-                        disabled={!form.watch("isReturnable")}
-                        onCheckedChange={(v) => form.setValue("tryAndBuy", !!v)}
-                      />
-                      <span className="text-sm font-medium">Try & Buy</span>
-                    </label>
-                    {!form.watch("isReturnable") && (
-                      <p className="max-w-sm text-xs text-muted-foreground">
-                        Non-returnable products aren't eligible for Try & Buy.
-                      </p>
-                    )}
+                    <p className="max-w-sm text-xs text-muted-foreground">
+                      {isInnerWear
+                        ? "Inner Wear is always non-returnable, so it isn't Try & Buy."
+                        : form.watch("isReturnable")
+                          ? "Returnable products are automatically Try & Buy."
+                          : "Non-returnable products aren't eligible for Try & Buy."}
+                    </p>
 
                     <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
                       Deal type (BOGO/Tiered/Free Shipping) is set by linking
