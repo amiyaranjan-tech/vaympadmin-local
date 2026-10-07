@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
 import useSettings from "@/hooks/useSettings";
+import offerService from "@/services/offer.service";
+import type { Offer } from "@/types/offer";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
 import { uploadImage } from "@/utils/imageUpload";
@@ -167,9 +169,50 @@ export default function ProductForm() {
       isBogo: false,
       tryAndBuy: true,
       isReturnable: true,
+      excludeFromShopDeals: false,
       video: "",
     },
   });
+
+  // The selected shop's running store-wide deals — the Offers step asks
+  // whether this product takes part in them.
+  const [shopDeals, setShopDeals] = useState<Offer[]>([]);
+  const sellerId = form.watch("seller");
+
+  useEffect(() => {
+    if (!sellerId) {
+      setShopDeals([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    offerService
+      .getAll({ seller: sellerId, limit: 50 })
+      .then(({ items }) => {
+        const now = Date.now();
+
+        if (!cancelled) {
+          setShopDeals(
+            items.filter(
+              (o) =>
+                o.scope === "entire_shop" &&
+                o.isEnabled &&
+                !o.isDeleted &&
+                (!o.startDate || new Date(o.startDate).getTime() <= now) &&
+                (!o.endDate || new Date(o.endDate).getTime() >= now),
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setShopDeals([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sellerId]);
 
   /**
    * ==========================================
@@ -221,6 +264,7 @@ export default function ProductForm() {
           isBogo: product.isBogo,
           tryAndBuy: product.tryAndBuy,
           isReturnable: product.isReturnable,
+          excludeFromShopDeals: product.excludeFromShopDeals ?? false,
           video: product.video,
         });
 
@@ -761,11 +805,38 @@ export default function ProductForm() {
                           : "Non-returnable products aren't eligible for Try & Buy."}
                     </p>
 
-                    <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-                      Deal type (BOGO/Tiered/Free Shipping) is set by linking
-                      this product to a Deal, not here — see the Deals
-                      section.
-                    </p>
+                    {shopDeals.length > 0 ? (
+                      <div className="max-w-md space-y-2">
+                        <Label>Store-wide deal</Label>
+                        <Select
+                          value={form.watch("excludeFromShopDeals") ? "none" : "include"}
+                          onValueChange={(v) =>
+                            form.setValue("excludeFromShopDeals", v === "none")
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="include">
+                              Include in {shopDeals.map((o) => o.title).join(", ")}
+                            </SelectItem>
+                            <SelectItem value="none">No deal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          {form.watch("excludeFromShopDeals")
+                            ? "This product stays out of the store-wide deal. You can add it to a different deal later from the Deals section, or leave it without any deal."
+                            : "This shop has a store-wide deal running — this product will be part of it."}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="max-w-sm rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
+                        Deal type (BOGO/Tiered/Free Shipping) is set by linking
+                        this product to a Deal, not here — see the Deals
+                        section.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

@@ -54,6 +54,10 @@ export const productSchema = z.object({
   tryAndBuy: z.boolean(),
   isReturnable: z.boolean(),
 
+  // Opt-out of the shop's store-wide (entire_shop) deals — backend
+  // models/Product.js#excludeFromShopDeals.
+  excludeFromShopDeals: z.boolean().default(false),
+
   video: z.string().optional().or(z.literal("")),
 });
 

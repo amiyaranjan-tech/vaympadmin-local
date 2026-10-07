@@ -109,6 +109,8 @@ export interface Product {
   sellerPrice?: number;
   discountPercent: number;
   finalPrice: number;
+  // Opted out of the shop's store-wide (entire_shop) deals.
+  excludeFromShopDeals?: boolean;
 
   // Automatic classification, not admin-set — derived server-side from
   // discountPercent >= the backend's MASSIVE_DEAL_MIN_DISCOUNT_PERCENT
@@ -202,6 +204,7 @@ export interface CreateProductRequest {
   sellingPrice: number;
   sellerPrice?: number;
   discountPercent?: number;
+  excludeFromShopDeals?: boolean;
 
   variants?: ProductVariant[];
 
