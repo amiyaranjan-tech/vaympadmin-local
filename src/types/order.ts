@@ -49,6 +49,25 @@ export interface OrderItem {
   size: string;
   quantity: number;
   price: number;
+  originalPrice: number;
+  discountAmount: number;
+  isFreeItem: boolean;
+  dealType: string | null;
+  dealTitle: string | null;
+  shopName: string;
+  // Live product details; null when the product was hard-deleted.
+  product: {
+    _id: string;
+    category: string;
+    subcategory: string;
+    gender: string;
+    color: string;
+    sku: string;
+    status: string;
+    sellingPrice: number;
+    finalPrice: number;
+    discountPercent: number;
+  } | null;
 }
 
 /**
@@ -71,6 +90,13 @@ export interface OrderShop {
   deliveredAt: string | null;
   cancelledAt: string | null;
   cancellationReason: string;
+  subtotal: number;
+  tierDiscount: number;
+  appliedTierTitle: string | null;
+  deliveryFee: number;
+  tax: number;
+  commissionRate: number;
+  rider: { name: string; phone: string } | null;
 }
 
 /**
@@ -109,6 +135,23 @@ export interface Order {
   // Platform's cut — computed from each shop's effective commission
   // rate, never stored on the order itself.
   commission: number;
+  dealDiscount: number;
+  tierDiscount: number;
+  handlingFee: number;
+  platformFee: number;
+
+  address: {
+    name: string;
+    phone: string;
+    address: string;
+    deliveryInstructions: string;
+  } | null;
+  isTryAndBuy: boolean;
+  deliveryDate: string;
+  deliveryTime: string;
+  estimatedDelivery: string;
+  transactionId: string;
+  cancelReason: string;
 
   paymentMethod: string;
   paymentStatus: OrderPaymentStatus;

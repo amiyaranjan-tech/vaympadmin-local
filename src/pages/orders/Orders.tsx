@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Eye, Search } from "lucide-react";
 
 import useOrders from "@/hooks/useOrders";
@@ -370,7 +371,7 @@ export default function Orders() {
         open={!!selected}
         onOpenChange={(open) => !open && setSelected(null)}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           {selected && (
             <>
               <SheetHeader>
@@ -386,39 +387,78 @@ export default function Orders() {
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="rounded-xl bg-muted/40 p-4">
-                    <div className="text-xs text-muted-foreground">
-                      Customer
-                    </div>
-
-                    <div className="mt-1 font-medium">
-                      {selected.customerName}
-                    </div>
-
+                    <div className="text-xs text-muted-foreground">Customer</div>
+                    <div className="mt-1 font-medium">{selected.customerName}</div>
                     <div className="text-xs text-muted-foreground">
                       {selected.customerPhone}
                     </div>
+                    {selected.customerEmail && (
+                      <div className="text-xs text-muted-foreground">
+                        {selected.customerEmail}
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-xl bg-muted/40 p-4">
                     <div className="text-xs text-muted-foreground">Payment</div>
-
                     <div className="mt-1 font-medium capitalize">
                       {selected.paymentStatus}
                     </div>
-
-                    <div className="text-xs text-muted-foreground uppercase">
+                    <div className="text-xs uppercase text-muted-foreground">
                       {selected.paymentMethod}
                     </div>
+                    {selected.transactionId && (
+                      <div className="break-all font-mono text-xs text-muted-foreground">
+                        {selected.transactionId}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="rounded-xl bg-muted/40 p-4 col-span-2">
+                  <div className="col-span-2 rounded-xl bg-muted/40 p-4">
                     <div className="text-xs text-muted-foreground">
-                      Commission
+                      Delivery address
                     </div>
-
-                    <div className="mt-1 font-semibold">
-                      {formatCurrency(selected.commission)}
+                    {selected.address ? (
+                      <>
+                        <div className="mt-1 font-medium">
+                          {selected.address.name} · {selected.address.phone}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {selected.address.address}
+                        </div>
+                        {selected.address.deliveryInstructions && (
+                          <div className="mt-1 text-xs italic text-muted-foreground">
+                            “{selected.address.deliveryInstructions}”
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="mt-1 text-muted-foreground">—</div>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline">{selected.status}</Badge>
+                      {selected.isTryAndBuy && (
+                        <Badge variant="outline">Try &amp; Buy</Badge>
+                      )}
+                      {(selected.deliveryDate || selected.deliveryTime) && (
+                        <Badge variant="outline">
+                          Slot:{" "}
+                          {[selected.deliveryDate, selected.deliveryTime]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </Badge>
+                      )}
+                      {selected.estimatedDelivery && (
+                        <Badge variant="outline">
+                          ETA: {selected.estimatedDelivery}
+                        </Badge>
+                      )}
                     </div>
+                    {selected.cancelReason && (
+                      <div className="mt-2 text-xs text-red-600">
+                        Cancelled: {selected.cancelReason}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -429,20 +469,44 @@ export default function Orders() {
 
                   <div className="space-y-3">
                     {selected.shops.map((shop, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between rounded-xl border p-4"
-                      >
-                        <div>
-                          <div className="font-medium">{shop.shopName}</div>
-
-                          <div className="text-xs text-muted-foreground">
-                            {shop.sellerStatus}
+                      <div key={i} className="space-y-2 rounded-xl border p-4 text-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{shop.shopName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {shop.sellerStatus} · {shop.commissionRate}% commission
+                            </div>
+                          </div>
+                          <div className="font-semibold">
+                            {formatCurrency(shop.shopTotal)}
                           </div>
                         </div>
-
-                        <div className="font-semibold">
-                          {formatCurrency(shop.shopTotal)}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>Subtotal: {formatCurrency(shop.subtotal)}</span>
+                          {shop.tierDiscount > 0 && (
+                            <span>
+                              Tier offer
+                              {shop.appliedTierTitle ? ` (${shop.appliedTierTitle})` : ""}: −
+                              {formatCurrency(shop.tierDiscount)}
+                            </span>
+                          )}
+                          <span>Delivery: {formatCurrency(shop.deliveryFee)}</span>
+                          <span>Tax: {formatCurrency(shop.tax)}</span>
+                          {shop.rider && (
+                            <span>
+                              Rider: {shop.rider.name} · {shop.rider.phone}
+                            </span>
+                          )}
+                          {(shop.courier || shop.trackingNumber) && (
+                            <span>
+                              {shop.courier} {shop.trackingNumber}
+                            </span>
+                          )}
+                          {shop.cancellationReason && (
+                            <span className="col-span-2 text-red-600">
+                              Cancelled: {shop.cancellationReason}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -456,29 +520,122 @@ export default function Orders() {
 
                   <div className="space-y-3">
                     {selected.items.map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between rounded-xl border p-4"
-                      >
-                        <div>
-                          <div className="font-medium">{item.productName}</div>
+                      <div key={i} className="flex gap-3 rounded-xl border p-3 text-sm">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.productName}
+                            className="h-20 w-16 shrink-0 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="h-20 w-16 shrink-0 rounded-lg bg-muted" />
+                        )}
 
-                          <div className="text-sm text-muted-foreground">
-                            Qty: {item.quantity}
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              {item.product ? (
+                                <Link
+                                  to={`/products/${item.product._id}/edit`}
+                                  className="font-medium hover:underline"
+                                >
+                                  {item.productName}
+                                </Link>
+                              ) : (
+                                <div className="font-medium">{item.productName}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                {[item.brand, item.shopName].filter(Boolean).join(" · ")}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="font-semibold">
+                                {formatCurrency(item.quantity * item.price)}
+                              </div>
+                              {item.originalPrice > item.price && (
+                                <div className="text-xs text-muted-foreground line-through">
+                                  {formatCurrency(item.quantity * item.originalPrice)}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="font-semibold">
-                          {formatCurrency(item.quantity * item.price)}
+                          <div className="flex flex-wrap gap-1 text-xs">
+                            <Badge variant="secondary">Size {item.size || "—"}</Badge>
+                            <Badge variant="secondary">Qty {item.quantity}</Badge>
+                            <Badge variant="secondary">
+                              {formatCurrency(item.price)} each
+                            </Badge>
+                            {item.product?.color && (
+                              <Badge variant="secondary">{item.product.color}</Badge>
+                            )}
+                            {item.product?.sku && (
+                              <Badge variant="secondary">SKU {item.product.sku}</Badge>
+                            )}
+                            {item.isFreeItem && <Badge>Free item</Badge>}
+                            {item.dealTitle && (
+                              <Badge variant="outline">{item.dealTitle}</Badge>
+                            )}
+                          </div>
+
+                          {item.product ? (
+                            <div className="text-xs text-muted-foreground">
+                              {[
+                                item.product.gender,
+                                item.product.category,
+                                item.product.subcategory,
+                              ]
+                                .filter(Boolean)
+                                .join(" › ")}{" "}
+                              · now {formatCurrency(item.product.finalPrice)} (
+                              {item.product.discountPercent}% off{" "}
+                              {formatCurrency(item.product.sellingPrice)}) ·{" "}
+                              <span className="capitalize">{item.product.status}</span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground">
+                              Product no longer exists
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t pt-4 font-semibold">
-                    <span>Total</span>
-
-                    <span>{formatCurrency(selected.total)}</span>
+                  <div className="mt-4 space-y-1 border-t pt-4 text-sm">
+                    {(
+                      [
+                        ["Subtotal", selected.subtotal],
+                        ["Discount", -selected.discount],
+                        ["Deal discount", -selected.dealDiscount],
+                        ["Tier discount", -selected.tierDiscount],
+                        ["Delivery fee", selected.deliveryFee],
+                        ["Handling fee", selected.handlingFee],
+                        ["Platform fee", selected.platformFee],
+                        ["Tax", selected.tax],
+                      ] as [string, number][]
+                    )
+                      .filter(([, v]) => v)
+                      .map(([label, v]) => (
+                        <div
+                          key={label}
+                          className="flex justify-between text-muted-foreground"
+                        >
+                          <span>{label}</span>
+                          <span>
+                            {v < 0 ? "−" : ""}
+                            {formatCurrency(Math.abs(v))}
+                          </span>
+                        </div>
+                      ))}
+                    <div className="flex justify-between pt-1 font-semibold">
+                      <span>Total</span>
+                      <span>{formatCurrency(selected.total)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Vaymp commission</span>
+                      <span>{formatCurrency(selected.commission)}</span>
+                    </div>
                   </div>
                 </div>
 
