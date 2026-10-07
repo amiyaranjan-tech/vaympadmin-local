@@ -133,7 +133,11 @@ export default function OverviewTab({
               <dt className="text-xs text-muted-foreground">Commission</dt>
 
               <dd className="mt-1 font-medium text-emerald-600">
-                {formatCurrency(seller.commission)}
+                {seller.effectiveCommissionRate}%
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  ({seller.commissionRate === null ? "platform default" : "custom"}) ·{" "}
+                  {formatCurrency(seller.commission)} earned
+                </span>
               </dd>
             </div>
 
