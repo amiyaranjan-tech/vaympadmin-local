@@ -578,7 +578,7 @@ export default function ProductForm() {
                     ))}
                     <div className="flex justify-between border-t pt-2">
                       <span className="font-medium">
-                        Cost price (seller gets)
+                        Final price after all deductions (seller gets)
                       </span>
                       <span className="text-base font-semibold">
                         {formatCurrency(pricing.costPrice)}
