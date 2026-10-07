@@ -967,7 +967,7 @@ export default function ProductForm() {
               ) : isEdit ? (
                 "Save changes"
               ) : (
-                "Save as draft"
+                "Publish product"
               )}
             </Button>
           )}

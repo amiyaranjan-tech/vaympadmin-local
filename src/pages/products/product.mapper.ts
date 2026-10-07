@@ -113,9 +113,9 @@ function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
  * Create Payload
  * ==========================================
  *
- * New products enter the marketplace workflow at "draft" — they move
- * through pending_review -> approved -> published via the separate
- * status action, not automatically on creation.
+ * An admin-created product goes live straight away ("published") — only
+ * seller-created products go through draft -> pending_review -> the
+ * admin's Approve & Publish.
  */
 
 export function createProductPayload(
@@ -125,7 +125,7 @@ export function createProductPayload(
   return {
     ...buildCommonPayload(values, images),
 
-    status: "draft",
+    status: "published",
   };
 }
 
