@@ -19,7 +19,8 @@ export const productSchema = z.object({
   seller: z.string().min(1, "Please select a shop"),
 
   sellingPrice: z.coerce.number().int("Whole rupees only").positive("Must be > 0"),
-  costPrice: z.coerce.number().int("Whole rupees only").positive("Must be > 0"),
+  // Computed in the form from MRP/discount/commission, not typed.
+  costPrice: z.coerce.number().int().min(0),
   discountPercent: z.coerce.number().min(0).max(100),
 
   variants: z

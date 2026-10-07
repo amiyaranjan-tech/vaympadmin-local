@@ -104,6 +104,9 @@ export interface Product {
 
   costPrice: number;
   sellingPrice: number;
+  // MRP minus the seller's discount % (see priceBreakdown); unset on
+  // legacy admin products.
+  sellerPrice?: number;
   discountPercent: number;
   finalPrice: number;
 
@@ -197,6 +200,7 @@ export interface CreateProductRequest {
 
   costPrice: number;
   sellingPrice: number;
+  sellerPrice?: number;
   discountPercent?: number;
 
   variants?: ProductVariant[];

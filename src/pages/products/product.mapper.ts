@@ -7,6 +7,28 @@ import type {
 import type { ProductFormValues } from "./product.schema";
 
 /**
+ * Pricing step breakdown — mirrors the backend's
+ * models/Product.js#computeDerivedFields (and the Seller App's form).
+ * MRP minus the seller's discount % is the Discounted Price (sellerPrice);
+ * Vaymp's commission is taken from that, leaving the cost price (what the
+ * seller is finally paid).
+ */
+export function priceBreakdown(
+  mrp: number,
+  discountPercent: number,
+  commissionRate: number,
+) {
+  const sellerPrice = Math.max(0, Math.round(mrp * (1 - discountPercent / 100)));
+  const commission = Math.round((sellerPrice * commissionRate) / 100);
+
+  return {
+    sellerPrice,
+    commission,
+    costPrice: sellerPrice - commission,
+  };
+}
+
+/**
  * ==========================================
  * Common Mapper
  * ==========================================
@@ -40,6 +62,9 @@ function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
     costPrice: values.costPrice,
 
     discountPercent: values.discountPercent,
+
+    sellerPrice: priceBreakdown(values.sellingPrice, values.discountPercent, 0)
+      .sellerPrice,
 
     variants: values.variants.map((variant) => ({
       size: variant.size,

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 import useProducts from "@/hooks/useProducts";
 import useSellers from "@/hooks/useSellers";
+import useSettings from "@/hooks/useSettings";
 import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
 import { uploadImage } from "@/utils/imageUpload";
@@ -33,7 +34,11 @@ import type { DropdownOptions } from "@/types/option";
 import type { ProductImage } from "@/types/product";
 
 import { productSchema, ProductFormValues as Form } from "./product.schema";
-import { createProductPayload, updateProductPayload } from "./product.mapper";
+import {
+  createProductPayload,
+  priceBreakdown,
+  updateProductPayload,
+} from "./product.mapper";
 import { CreateBrandDialog } from "./CreateBrandDialog";
 
 const STEPS = [
@@ -120,6 +125,7 @@ export default function ProductForm() {
 
   const { getProduct, createProduct, updateProduct } = useProducts();
   const { sellers } = useSellers({ limit: 100 });
+  const { settings } = useSettings();
   const { options, addOption } = useDropdownOptions();
 
   const [loadingProduct, setLoadingProduct] = useState(isEdit);
@@ -127,6 +133,7 @@ export default function ProductForm() {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [draggingImages, setDraggingImages] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [pendingBrand, setPendingBrand] = useState<string | null>(null);
 
   const form = useForm<Form>({
@@ -193,7 +200,16 @@ export default function ProductForm() {
           seller: product.seller ?? "",
           sellingPrice: product.sellingPrice,
           costPrice: product.costPrice,
-          discountPercent: product.discountPercent,
+          // discountPercent on the product is the buyer-facing one; the
+          // form edits the seller's own discount, recoverable from sellerPrice.
+          discountPercent:
+            product.sellerPrice != null && product.sellingPrice > 0
+              ? Math.round(
+                  ((product.sellingPrice - product.sellerPrice) /
+                    product.sellingPrice) *
+                    100,
+                )
+              : product.discountPercent,
           variants: product.variants,
           color: product.color,
           season: product.season,
@@ -225,9 +241,13 @@ export default function ProductForm() {
 
   const sellingPrice = form.watch("sellingPrice") ?? 0;
   const discountPercent = form.watch("discountPercent") ?? 0;
-  const finalPrice = Math.max(
-    0,
-    Math.floor(sellingPrice * (1 - discountPercent / 100)),
+  const selectedSeller = sellers.find((s) => s._id === form.watch("seller"));
+  const commissionRate =
+    selectedSeller?.commissionRate ?? settings?.commissionRate ?? 0;
+  const pricing = priceBreakdown(
+    Number(sellingPrice) || 0,
+    Number(discountPercent) || 0,
+    commissionRate,
   );
   const variants = form.watch("variants");
   const gender = form.watch("gender");
@@ -249,7 +269,7 @@ export default function ProductForm() {
 
   const stepFields: Record<number, (keyof Form)[]> = {
     0: ["name", "description", "gender", "seller", "brand", "category", "subcategory"],
-    1: ["sellingPrice", "costPrice", "discountPercent"],
+    1: ["sellingPrice", "discountPercent"],
     2: ["variants"],
     3: ["color", "season"],
     4: [],
@@ -269,9 +289,14 @@ export default function ProductForm() {
   const onSubmit = async (values: Form) => {
     try {
       if (isEdit && id) {
-        await updateProduct(id, updateProductPayload(values, images));
+        await updateProduct(
+          id,
+          updateProductPayload({ ...values, costPrice: pricing.costPrice }, images),
+        );
       } else {
-        await createProduct(createProductPayload(values, images));
+        await createProduct(
+          createProductPayload({ ...values, costPrice: pricing.costPrice }, images),
+        );
       }
 
       navigate("/products");
@@ -524,27 +549,41 @@ export default function ProductForm() {
                 </div>
               )}
               {step === 1 && (
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>Selling Price</Label>
-                    <Input type="number" {...form.register("sellingPrice")} />
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>MRP (Selling Price)</Label>
+                      <Input type="number" {...form.register("sellingPrice")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Discount %</Label>
+                      <Input
+                        type="number"
+                        {...form.register("discountPercent")}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Cost Price</Label>
-                    <Input type="number" {...form.register("costPrice")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Discount %</Label>
-                    <Input
-                      type="number"
-                      {...form.register("discountPercent")}
-                    />
-                  </div>
-                  <div className="md:col-span-3 rounded-xl bg-muted/40 p-4 text-sm">
-                    Final price after discount:{" "}
-                    <span className="text-base font-semibold">
-                      {formatCurrency(finalPrice)}
-                    </span>
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-4 text-sm">
+                    {[
+                      ["Discounted price", formatCurrency(pricing.sellerPrice)],
+                      [
+                        `Vaymp commission (${commissionRate}%)`,
+                        `− ${formatCurrency(pricing.commission)}`,
+                      ],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span>{value}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="font-medium">
+                        Cost price (seller gets)
+                      </span>
+                      <span className="text-base font-semibold">
+                        {formatCurrency(pricing.costPrice)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -762,7 +801,8 @@ export default function ProductForm() {
                           : "Upload images"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Drag & drop or click — multiple files supported
+                      Drag & drop or click — multiple files supported. Drag
+                      thumbnails to reorder; the first is the cover.
                     </div>
                     <input
                       type="file"
@@ -776,13 +816,36 @@ export default function ProductForm() {
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {images.map((image, i) => (
                       <div
-                        key={i}
-                        className="relative aspect-square overflow-hidden rounded-xl bg-muted"
+                        key={image.publicId || image.url}
+                        draggable
+                        onDragStart={() => setDragIndex(i)}
+                        onDragEnd={() => setDragIndex(null)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (dragIndex === null || dragIndex === i) return;
+                          setImages((prev) => {
+                            const next = [...prev];
+                            const [moved] = next.splice(dragIndex, 1);
+                            next.splice(i, 0, moved);
+                            return next;
+                          });
+                          setDragIndex(i);
+                        }}
+                        className={cn(
+                          "relative aspect-square cursor-grab overflow-hidden rounded-xl bg-muted active:cursor-grabbing",
+                          dragIndex === i && "opacity-40 ring-2 ring-primary",
+                        )}
                       >
                         <img
                           src={image.url}
+                          draggable={false}
                           className="h-full w-full object-cover"
                         />
+                        {i === 0 && (
+                          <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                            Cover
+                          </span>
+                        )}
                         <button
                           type="button"
                           className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"

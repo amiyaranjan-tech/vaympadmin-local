@@ -111,13 +111,12 @@ export default function Settings() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Seller price margin %</Label>
+                <Label>Vaymp discount %</Label>
                 <Input type="number" {...bForm.register("priceMarginPercent")} />
                 <p className="text-xs text-muted-foreground">
-                  Sellers submit a Total Price and a Discounted Price (their real payout). Buyers
-                  see a discount this many percentage points lower than the seller's own — e.g. a
-                  seller's real 55% discount shows as 50% off when this is 5. The gap between what
-                  buyers pay and what the seller is paid is Vaymp's margin, on top of commission.
+                  Vaymp's own discount, paid by Vaymp — taken off the seller's Discounted Price
+                  (MRP minus their discount %) to get the buyer price. E.g. MRP ₹2000, seller 55%
+                  → ₹900, Vaymp 5% → buyer pays ₹855. Separate from commission.
                 </p>
               </div>
               <div className="space-y-2 md:col-span-2"><Label>Address</Label><Textarea rows={3} {...bForm.register("address")} /></div>

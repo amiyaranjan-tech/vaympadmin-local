@@ -25,10 +25,9 @@ export interface PlatformSettings {
   supportEmail: string;
   address: string;
   commissionRate: number;
-  // Percentage points shaved off a seller-priced product's own discount
-  // when computing the buyer-facing price — the gap between that and the
-  // seller's actual payout (sellerPrice) is Vaymp's margin, on top of
-  // commissionRate. See backend's models/Product.js#computeDerivedFields.
+  // Vaymp's own discount (%), funded by Vaymp, taken off a product's
+  // sellerPrice to get the buyer price. See backend's
+  // models/Product.js#computeDerivedFields.
   priceMarginPercent: number;
   createdAt: string;
   updatedAt: string;
