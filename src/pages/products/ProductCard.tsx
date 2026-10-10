@@ -21,6 +21,17 @@ import { ProductDealSheet } from "./ProductDealSheet";
 import { activeOffersForProduct, offerMechanicLabel } from "./dealMatching";
 import type { Offer } from "@/types/offer";
 
+// The backend only allows one status hop at a time (constants/
+// productStatus.js#TRANSITIONS), so "Publish" walks the legal path.
+// Archived has no way back, so it gets no Publish action.
+export const PUBLISH_PATH: Partial<Record<Product["status"], Product["status"][]>> = {
+  draft: ["pending_review", "approved", "published"],
+  pending_review: ["approved", "published"],
+  approved: ["published"],
+  hidden: ["published"],
+  rejected: ["draft", "pending_review", "approved", "published"],
+};
+
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
@@ -34,7 +45,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onDelete, onView, onPublish, offers = [] }: ProductCardProps) {
-  const canPublish = product.status !== "published";
+  const canPublish = Boolean(PUBLISH_PATH[product.status]);
   const [showDealSheet, setShowDealSheet] = useState(false);
 
   const activeOffers = activeOffersForProduct(offers, product);

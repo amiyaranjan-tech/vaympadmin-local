@@ -14,7 +14,7 @@ import useOffers from "@/hooks/useOffers";
 import type { ProductQueryParams, ProductStockStatus } from "@/types/product";
 
 import { Product } from "./types";
-import { ProductCard } from "./ProductCard";
+import { ProductCard, PUBLISH_PATH } from "./ProductCard";
 import { ProductFilters } from "./ProductFilters";
 import { ProductDetailsSheet } from "./ProductDetailsSheet";
 
@@ -163,6 +163,17 @@ export default function Products() {
     void updateStatus(id, status).then((updated) => {
       setSelectedProduct((prev) => (prev && prev._id === id ? updated : prev));
     });
+  };
+
+  const handlePublish = async (id: string, from: Product["status"]) => {
+    try {
+      for (const status of PUBLISH_PATH[from] ?? []) {
+        const updated = await updateStatus(id, status);
+        setSelectedProduct((prev) => (prev && prev._id === id ? updated : prev));
+      }
+    } catch {
+      // useProducts#updateStatus already toasts the error.
+    }
   };
 
   const hasActiveFilters = Object.keys(queryParams).some(
@@ -327,7 +338,7 @@ export default function Products() {
                 setSelectedProduct(product);
                 setOpenDetails(true);
               }}
-              onPublish={(id) => handleStatusChange(id, "published")}
+              onPublish={(id) => void handlePublish(id, product.status)}
             />
           ))}
         </div>
