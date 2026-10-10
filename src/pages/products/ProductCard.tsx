@@ -25,7 +25,7 @@ interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
   onView: (product: Product) => void;
-  onApprove?: (id: string) => void;
+  onPublish?: (id: string) => void;
   // Every currently-active offer across every shop — this card filters
   // down to just the ones that actually apply to `product` (see
   // activeOffersForProduct). Passed once from Products.tsx rather than
@@ -33,8 +33,8 @@ interface ProductCardProps {
   offers?: Offer[];
 }
 
-export function ProductCard({ product, onDelete, onView, onApprove, offers = [] }: ProductCardProps) {
-  const canApprove = product.status === "pending_review";
+export function ProductCard({ product, onDelete, onView, onPublish, offers = [] }: ProductCardProps) {
+  const canPublish = product.status !== "published";
   const [showDealSheet, setShowDealSheet] = useState(false);
 
   const activeOffers = activeOffersForProduct(offers, product);
@@ -128,10 +128,10 @@ export function ProductCard({ product, onDelete, onView, onApprove, offers = [] 
                   View
                 </DropdownMenuItem>
 
-                {canApprove && onApprove && (
-                  <DropdownMenuItem onSelect={() => onApprove(product._id)}>
+                {canPublish && onPublish && (
+                  <DropdownMenuItem onSelect={() => onPublish(product._id)}>
                     <Check className="mr-2 h-4 w-4" />
-                    Approve
+                    Publish
                   </DropdownMenuItem>
                 )}
 

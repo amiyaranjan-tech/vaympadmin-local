@@ -1,6 +1,7 @@
 import type {
   CreateProductRequest,
   ProductImage,
+  ProductStatus,
   UpdateProductRequest,
 } from "@/types/product";
 
@@ -113,19 +114,19 @@ function buildCommonPayload(values: ProductFormValues, images: ProductImage[]) {
  * Create Payload
  * ==========================================
  *
- * An admin-created product goes live straight away ("published") — only
- * seller-created products go through draft -> pending_review -> the
- * admin's Approve & Publish.
+ * The admin picks after filling the form: "published" (live now) or
+ * "pending_review" (publish later from Product Approvals / the card menu).
  */
 
 export function createProductPayload(
   values: ProductFormValues,
   images: ProductImage[],
+  status: ProductStatus,
 ): CreateProductRequest {
   return {
     ...buildCommonPayload(values, images),
 
-    status: "published",
+    status,
   };
 }
 

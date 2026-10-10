@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -16,6 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { toast } from "sonner";
@@ -33,7 +41,7 @@ import useDropdownOptions from "@/hooks/useDropdownOptions";
 import { sortSizes } from "@/utils/sortSizes";
 import { uploadImage } from "@/utils/imageUpload";
 import type { DropdownOptions } from "@/types/option";
-import type { ProductImage } from "@/types/product";
+import type { ProductImage, ProductStatus } from "@/types/product";
 
 import { productSchema, ProductFormValues as Form } from "./product.schema";
 import {
@@ -42,6 +50,22 @@ import {
   updateProductPayload,
 } from "./product.mapper";
 import { CreateBrandDialog } from "./CreateBrandDialog";
+
+const FIELD_LABELS: Partial<Record<keyof Form, string>> = {
+  name: "Product name",
+  description: "Description (min 10 chars)",
+  gender: "Gender",
+  seller: "Shop",
+  brand: "Brand",
+  category: "Category",
+  subcategory: "Subcategory",
+  sellingPrice: "MRP",
+  discountPercent: "Discount",
+  costPrice: "Cost price",
+  variants: "Sizes / stock",
+  color: "Color",
+  season: "Season",
+};
 
 const STEPS = [
   "Media",
@@ -137,6 +161,9 @@ export default function ProductForm() {
   const [draggingImages, setDraggingImages] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [pendingBrand, setPendingBrand] = useState<string | null>(null);
+  // Filled-in values awaiting the admin's "publish now?" answer (create only).
+  const [pendingCreate, setPendingCreate] = useState<Form | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const form = useForm<Form>({
     resolver: zodResolver(productSchema),
@@ -242,7 +269,8 @@ export default function ProductForm() {
           group: product.group,
           seller: product.seller ?? "",
           sellingPrice: product.sellingPrice,
-          costPrice: product.costPrice,
+          // Older products can lack costPrice; it is recomputed on save anyway.
+          costPrice: product.costPrice ?? 0,
           // discountPercent on the product is the buyer-facing one; the
           // form edits the seller's own discount, recoverable from sellerPrice.
           discountPercent:
@@ -323,7 +351,7 @@ export default function ProductForm() {
   const next = async () => {
     const ok = await form.trigger(stepFields[step]);
     if (!ok) {
-      toast.error("Please fix the errors");
+      onInvalid(form.formState.errors);
       return;
     }
 
@@ -331,24 +359,58 @@ export default function ProductForm() {
   };
 
   const onSubmit = async (values: Form) => {
-    try {
-      if (isEdit && id) {
-        await updateProduct(
-          id,
-          updateProductPayload({ ...values, costPrice: pricing.costPrice }, images),
-        );
-      } else {
-        await createProduct(
-          createProductPayload({ ...values, costPrice: pricing.costPrice }, images),
-        );
-      }
-
-      navigate("/products");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong",
-      );
+    if (images.length === 0) {
+      setStep(0);
+      toast.error("Add at least one product photo");
+      return;
     }
+
+    if (!isEdit) {
+      setPendingCreate(values);
+      return;
+    }
+
+    try {
+      await updateProduct(
+        id!,
+        updateProductPayload({ ...values, costPrice: pricing.costPrice }, images),
+      );
+      navigate("/products");
+    } catch {
+      // useProducts#updateProduct already toasts the error.
+    }
+  };
+
+  // "No" saves it as pending_review — it then shows up under Product
+  // Approvals (and the product card's Publish action) to publish later.
+  const createWithStatus = async (status: ProductStatus) => {
+    if (!pendingCreate) return;
+
+    setCreating(true);
+    try {
+      await createProduct(
+        createProductPayload({ ...pendingCreate, costPrice: pricing.costPrice }, images, status),
+      );
+      navigate("/products");
+    } catch {
+      // useProducts#createProduct already toasts the error.
+    } finally {
+      setCreating(false);
+      setPendingCreate(null);
+    }
+  };
+
+  // Without this a failing field on another step blocked Save silently.
+  const onInvalid = (errors: FieldErrors<Form>) => {
+    const missing = Object.keys(errors) as (keyof Form)[];
+    const firstStep = Object.entries(stepFields).find(([, fields]) =>
+      fields.some((f) => missing.includes(f)),
+    );
+    if (firstStep) setStep(Number(firstStep[0]));
+
+    toast.error("Some details are missing", {
+      description: missing.map((f) => FIELD_LABELS[f] ?? f).join(", "),
+    });
   };
 
   const addVariant = () => {
@@ -429,7 +491,7 @@ export default function ProductForm() {
         ))}
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <Card className="rounded-2xl p-6 shadow-soft">
           <AnimatePresence mode="wait">
             <motion.div
@@ -967,12 +1029,41 @@ export default function ProductForm() {
               ) : isEdit ? (
                 "Save changes"
               ) : (
-                "Publish product"
+                "Save product"
               )}
             </Button>
           )}
         </div>
       </form>
+
+      <Dialog
+        open={pendingCreate !== null}
+        onOpenChange={(open) => !open && !creating && setPendingCreate(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish this product now?</DialogTitle>
+            <DialogDescription>
+              Yes makes it live on the marketplace right away. No saves it as
+              pending — publish it later from Product Approvals or the
+              product's menu.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={creating}
+              onClick={() => void createWithStatus("pending_review")}
+            >
+              No, save as pending
+            </Button>
+            <Button disabled={creating} onClick={() => void createWithStatus("published")}>
+              {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Yes, publish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <CreateBrandDialog
         brandName={pendingBrand}

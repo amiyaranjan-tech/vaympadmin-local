@@ -327,7 +327,7 @@ export default function Products() {
                 setSelectedProduct(product);
                 setOpenDetails(true);
               }}
-              onApprove={(id) => handleStatusChange(id, "approved")}
+              onPublish={(id) => handleStatusChange(id, "published")}
             />
           ))}
         </div>
