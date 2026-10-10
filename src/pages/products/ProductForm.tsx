@@ -44,12 +44,12 @@ import {
 import { CreateBrandDialog } from "./CreateBrandDialog";
 
 const STEPS = [
+  "Media",
   "Basics",
   "Pricing",
   "Inventory",
   "Attributes",
   "Offers",
-  "Media",
 ];
 
 // Presentational labels only — which attribute keys apply to a given
@@ -312,11 +312,11 @@ export default function ProductForm() {
   const visibleAttributeKeys = options.attributeTemplatesBySubcategory[subcategory ?? ""] ?? [];
 
   const stepFields: Record<number, (keyof Form)[]> = {
-    0: ["name", "description", "gender", "seller", "brand", "category", "subcategory"],
-    1: ["sellingPrice", "discountPercent"],
-    2: ["variants"],
-    3: ["color", "season"],
-    4: [],
+    0: [],
+    1: ["name", "description", "gender", "seller", "brand", "category", "subcategory"],
+    2: ["sellingPrice", "discountPercent"],
+    3: ["variants"],
+    4: ["color", "season"],
     5: [],
   };
 
@@ -439,7 +439,7 @@ export default function ProductForm() {
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.2 }}
             >
-              {step === 0 && (
+              {step === 1 && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2 md:col-span-2">
                     <Label>Name</Label>
@@ -592,7 +592,7 @@ export default function ProductForm() {
                   </div>
                 </div>
               )}
-              {step === 1 && (
+              {step === 2 && (
                 <div className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -631,7 +631,7 @@ export default function ProductForm() {
                   </div>
                 </div>
               )}
-              {step === 2 && (
+              {step === 3 && (
                 <div className="space-y-3">
                   <Label>Variants (size, stock)</Label>
                   {variants.map((variant, i) => (
@@ -693,7 +693,7 @@ export default function ProductForm() {
                   )}
                 </div>
               )}
-              {step === 3 && (
+              {step === 4 && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Color</Label>
@@ -740,7 +740,7 @@ export default function ProductForm() {
                   })}
                 </div>
               )}
-              {step === 4 && (
+              {step === 5 && (
                 <div className="space-y-6">
                   <div className="grid gap-3 md:grid-cols-2">
                     {(
@@ -840,7 +840,7 @@ export default function ProductForm() {
                   </div>
                 </div>
               )}
-              {step === 5 && (
+              {step === 0 && (
                 <div className="space-y-4">
                   <label
                     className={cn(
