@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import categorySidebarBannerService from "@/services/categorySidebarBanner.service";
 import { uploadImage } from "@/utils/imageUpload";
 
-import type { CategorySidebarBanner } from "@/types/categorySidebarBanner";
+import type { CategorySidebarBanner, CategorySidebarBannerGender } from "@/types/categorySidebarBanner";
 
 // One category tile — mirrors category-banners/SubcategoryBannerCard.tsx's
 // own upload dropzone (label+hidden input), just keyed by category alone
@@ -17,11 +17,13 @@ import type { CategorySidebarBanner } from "@/types/categorySidebarBanner";
 // immediately (upsert), there's no separate form/Save step per card.
 export function CategorySidebarBannerCard({
   category,
+  gender,
   banner,
   onSaved,
   onRemoved,
 }: {
   category: string;
+  gender: CategorySidebarBannerGender;
   banner?: CategorySidebarBanner;
   onSaved: (banner: CategorySidebarBanner) => void;
   onRemoved: () => void;
@@ -41,7 +43,7 @@ export function CategorySidebarBannerCard({
     try {
       const image = await uploadImage(file);
 
-      const saved = await categorySidebarBannerService.upsert({ category, image });
+      const saved = await categorySidebarBannerService.upsert({ category, gender, image });
 
       onSaved(saved);
       toast.success(`"${category}" sidebar banner saved`);
@@ -56,7 +58,7 @@ export function CategorySidebarBannerCard({
     setRemoving(true);
 
     try {
-      await categorySidebarBannerService.delete({ category });
+      await categorySidebarBannerService.delete({ category, gender });
       onRemoved();
       toast.success(`"${category}" sidebar banner removed`);
     } catch (error) {

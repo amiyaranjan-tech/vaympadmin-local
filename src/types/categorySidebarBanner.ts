@@ -27,9 +27,13 @@ export interface CategorySidebarBannerApiResponse<T> {
  * (gender, category, subcategory) for the subcategory GRID.
  */
 
+// "" = the default tile for every gender; a gender's own tile wins over it.
+export type CategorySidebarBannerGender = "" | "men" | "women" | "kids";
+
 export interface CategorySidebarBanner {
   _id: string;
   category: string;
+  gender: CategorySidebarBannerGender;
   image: UploadedImage;
   createdAt: string;
   updatedAt: string;
@@ -37,9 +41,11 @@ export interface CategorySidebarBanner {
 
 export interface UpsertCategorySidebarBannerRequest {
   category: string;
+  gender: CategorySidebarBannerGender;
   image: UploadedImage;
 }
 
 export interface DeleteCategorySidebarBannerRequest {
   category: string;
+  gender: CategorySidebarBannerGender;
 }
